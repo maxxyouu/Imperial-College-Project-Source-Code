@@ -2,11 +2,10 @@
 Source code refer to https://www.thepythoncode.com/article/extract-frames-from-videos-in-python
 '''
 
-from datetime import timedelta
+# from datetime import timedelta
 import cv2
 import numpy as np
 import os
-import ffmpeg
 
 
 def format_timedelta(td):
@@ -35,9 +34,6 @@ def get_saving_frames_durations(cap, saving_fps):
 def ExtractFrames(video_file, frame_repo_path, frame_per_sec=10):
     filename, _ = os.path.splitext(video_file)
     
-    # frames, fps, clip_duration = get_video_info(video_file)
-    # assert(frames != 0 and fps != 0)
-
     # read the video file    
     cap = cv2.VideoCapture(video_file)
     # get the FPS of the video

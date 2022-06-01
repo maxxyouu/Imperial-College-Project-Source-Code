@@ -7,6 +7,9 @@ import cv2
 import numpy as np
 import os
 
+# import torch
+from PIL import Image
+# import torchvision.transforms as transforms
 
 def format_timedelta(td):
     """Utility function to format timedelta objects in a cool way (e.g 00:00:20.05) 
@@ -89,8 +92,42 @@ def extractVideos(parent_dir, save_repo, save_frame_per_sec):
         full_dir = parent_dir + video_name
         ExtractFrames(full_dir, save_repo, save_frame_per_sec)
 
+
+def removeLogos(image_path):
+    """Helper function to remove commercial logo from the video frames"""
+    # Import necessary libraries
+    
+    # Read a PIL image
+    image = Image.open(image_path)
+
+    # numpy implementation to erase value
+    img_tensor = np.array(image)
+    img_tensor[303 : 326, 9 : 92, ...] = 0
+    img_tensor[300 : 333, 333: 397, ...] = 0
+    img = Image.fromarray(img_tensor)
+    img.save('../dataset/clean.jpg')
+
+
 if __name__ == '__main__':
     # save all frames
 
     # extract frame per video for meningioma tumor
     # ExtractFrames('../dataset/meningioma/meningioma 18.mpg', '../dataset/Frames', frame_per_sec=100)
+
+    removeLogos('../dataset/Frames/meningioma 0/framePerSec-24-24/meningioma 0-frame10.jpg')
+
+
+## pytorch implementation to remove logos
+    # Define a transform to convert PIL 
+    # image to a Torch tensor
+    # tensorToPIL = transforms.ToPILImage()
+    # toTensor = transforms.ToTensor()
+    
+    # transform = transforms.PILToTensor()
+    # Convert the PIL image to Torch tensor
+    # img_tensor = toTensor(image)
+    # img_tensor[..., 303 : 326, 9 : 92] = 0
+    # img_tensor[..., 300 : 333, 333: 397] = 0
+
+    # convert the tensor to PIL image using above transform
+    # img = tensorToPIL(img_tensor)

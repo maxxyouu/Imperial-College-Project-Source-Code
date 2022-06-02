@@ -7,9 +7,7 @@ import cv2
 import numpy as np
 import os
 
-# import torch
 from PIL import Image
-# import torchvision.transforms as transforms
 
 def format_timedelta(td):
     """Utility function to format timedelta objects in a cool way (e.g 00:00:20.05) 
@@ -34,7 +32,7 @@ def get_saving_frames_durations(cap, saving_fps):
         s.append(i)
     return s
 
-def ExtractFrames(video_file, frame_repo_path, frame_per_sec=10):
+def ExtractFrames(video_file, frame_repo_path, frame_per_sec=100):
     filename, _ = os.path.splitext(video_file)
     
     # read the video file    
@@ -92,20 +90,52 @@ def extractVideos(parent_dir, save_repo, save_frame_per_sec):
         full_dir = parent_dir + video_name
         ExtractFrames(full_dir, save_repo, save_frame_per_sec)
 
-
-def removeLogos(image_path):
-    """Helper function to remove commercial logo from the video frames"""
-    # Import necessary libraries
-    
+def removeImagelogo(image):
     # Read a PIL image
-    image = Image.open(image_path)
-
+    # image = Image.open(image_path)
     # numpy implementation to erase value
     img_tensor = np.array(image)
+    # fixed location to erase the commercial logos
     img_tensor[303 : 326, 9 : 92, ...] = 0
     img_tensor[300 : 333, 333: 397, ...] = 0
-    img = Image.fromarray(img_tensor)
-    img.save('../dataset/clean.jpg')
+
+    return Image.fromarray(img_tensor)
+
+def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
+    """Helper function to remove commercial logo from the video frames"""
+    # filter_list = ['meningioma ', 'GBM']
+
+    # iterate through each data point
+    videos = os.listdir(parent_dir)
+    for video in videos:
+
+        # remove logos for all frames of a patient video
+        patient_path = os.path.join(parent_dir, video)
+
+        # skip non directory path
+        if not os.path.isdir(patient_path):
+            continue
+        frame_rate_dirs = os.listdir(patient_path)
+
+        # locate the framerate folder
+        frames_path = os.path.join(patient_path, frame_rate_dirs[0]) # NOTE: [0] with frame per sec 24/24
+        # skip non directory path
+        if not os.path.isdir(frames_path):
+            continue
+        frames = os.listdir(frames_path)
+
+        for frame_name in frames:
+            frame_path = os.path.join(frames_path, frame_name)
+            frame = Image.open(frame_path)
+            frame = removeImagelogo(frame)
+
+            frame_dest = os.path.join(destination, video, frame_name)
+
+            # make a folder by the name of the video file
+            if not os.path.isdir(os.path.join(destination, video)):
+                os.makedirs(os.path.join(destination, video)) # create directory recursively
+
+            frame.save(frame_dest)
 
 
 if __name__ == '__main__':
@@ -113,8 +143,12 @@ if __name__ == '__main__':
 
     # extract frame per video for meningioma tumor
     # ExtractFrames('../dataset/meningioma/meningioma 18.mpg', '../dataset/Frames', frame_per_sec=100)
+    # removeLogos('../dataset/Frames/meningioma 0/framePerSec-24-24/meningioma 0-frame10.jpg')
 
-    removeLogos('../dataset/Frames/meningioma 0/framePerSec-24-24/meningioma 0-frame10.jpg')
+
+    # remove logos in
+    removeLogos('../dataset/Frames')
+
 
 
 ## pytorch implementation to remove logos

@@ -95,16 +95,20 @@ def removeImagelogo(image):
     # image = Image.open(image_path)
     # numpy implementation to erase value
     img_tensor = np.array(image)
-    # fixed location to erase the commercial logos
-    img_tensor[303 : 326, 9 : 92, ...] = 0
-    img_tensor[300 : 333, 333: 397, ...] = 0
+
+    # fixed location to erase the commercial logos for video GBM 1-16
+    # img_tensor[303 : 326, 9 : 92, ...] = 0
+    # img_tensor[300 : 333, 333: 397, ...] = 0
+
+    # for GBM 17-18
+    # img_tensor[320 : 345, 9 : 92, ...] = 0
+    # img_tensor[315 : 348, 333: 397, ...] = 0
+
 
     return Image.fromarray(img_tensor)
 
 def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
     """Helper function to remove commercial logo from the video frames"""
-    # filter_list = ['meningioma ', 'GBM']
-
     # iterate through each data point
     videos = os.listdir(parent_dir)
     for video in videos:
@@ -118,7 +122,7 @@ def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
         frame_rate_dirs = os.listdir(patient_path)
 
         # locate the framerate folder
-        frames_path = os.path.join(patient_path, frame_rate_dirs[0]) # NOTE: [0] with frame per sec 24/24
+        frames_path = os.path.join(patient_path, frame_rate_dirs[-1]) # NOTE: [0] with frame per sec 24/24
         # skip non directory path
         if not os.path.isdir(frames_path):
             continue
@@ -141,8 +145,8 @@ def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
 if __name__ == '__main__':
     # save all frames
 
-    # extract frame per video for meningioma tumor
-    # ExtractFrames('../dataset/meningioma/meningioma 18.mpg', '../dataset/Frames', frame_per_sec=100)
+    # extract frame per videos
+    # ExtractFrames('../dataset/GBM/GBM 17.avi', '../dataset/Frames', frame_per_sec=100)
     # removeLogos('../dataset/Frames/meningioma 0/framePerSec-24-24/meningioma 0-frame10.jpg')
 
 

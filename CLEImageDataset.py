@@ -39,6 +39,17 @@ class CLEImageDataset(Dataset):
 
         return image, label
 
+class Data_Playground:
+    def __init__(self, dataset):
+        pass
+    
+
+    def mean(self):
+        pass
+
+    def var(self):
+        pass
+
 if __name__ == '__main__':
     # test if the custom dataset works
     all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
@@ -46,6 +57,8 @@ if __name__ == '__main__':
     train_features, train_labels = next(iter(train_dataloader))
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
+
+    
 
 
 # Iterate through dataloader to visualize

@@ -6,7 +6,7 @@ Source code refer to https://www.thepythoncode.com/article/extract-frames-from-v
 import cv2
 import numpy as np
 import os
-
+import csv
 from PIL import Image
 
 def format_timedelta(td):
@@ -42,8 +42,9 @@ def ExtractFrames(video_file, frame_repo_path, frame_per_sec=100):
     assert(fps != 0)
     # if the SAVING_FRAMES_PER_SECOND is above video FPS, then set it to FPS (as maximum)
     saving_frames_per_second = min(fps, frame_per_sec)
-    # get the list of duration spots to save
-    saving_frames_durations = get_saving_frames_durations(cap, saving_frames_per_second)
+    # get the list of duration spots to save and [0::2] only keeps the 2nd element
+    saving_frames_durations = get_saving_frames_durations(cap, saving_frames_per_second)[0::2]
+
     # start the loop
     count, amount_saved = 0, 0
 
@@ -96,15 +97,13 @@ def removeImagelogo(image):
     # numpy implementation to erase value
     img_tensor = np.array(image)
 
-    # fixed location to erase the commercial logos for video GBM 1-16
+    # fixed location to erase the commercial logos for video GBM 1-16 and all Meingioma videos
     # img_tensor[303 : 326, 9 : 92, ...] = 0
     # img_tensor[300 : 333, 333: 397, ...] = 0
 
     # for GBM 17-18
-    # img_tensor[320 : 345, 9 : 92, ...] = 0
-    # img_tensor[315 : 348, 333: 397, ...] = 0
-
-
+    img_tensor[320 : 345, 9 : 92, ...] = 0
+    img_tensor[315 : 348, 333: 397, ...] = 0
     return Image.fromarray(img_tensor)
 
 def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
@@ -141,18 +140,60 @@ def removeLogos(parent_dir, destination='../dataset/cleanFrames'):
 
             frame.save(frame_dest)
 
+def output_annotations(output_dir='../', output_name='annotations.csv', input_dir='../cleanDistilledFrames'):
+    '''
+    Output a CSV file that contains name, annotation [0/1]
+    where 0 = GBM and 1 = Meningeioma
+    '''
+    assert(os.path.isdir(input_dir))
+    patient_dirs = os.listdir(input_dir)  
+    dest = os.path.join(output_dir, output_name)
+    
+    with open(dest, 'x', encoding='UTF8') as f:
+
+        # get a csv writer to write data
+        writer = csv.writer(f)
+
+        for patient in patient_dirs:
+            # make sure it is a directory
+            patient_dir = os.path.join(input_dir, patient)
+
+            # skip non directory in the folder
+            if not os.path.isdir(patient_dir):
+                continue
+            
+            # open the patient directory
+            patient_images = os.listdir(patient_dir)
+
+            # write to csv fle
+            for image_name in patient_images:
+                if 'GBM' in image_name:
+                    label = 0
+                elif 'meningioma':
+                    label = 1
+                else:
+                    label = -1
+                
+                # make the it is a valid label
+                if label >= 0:
+                    writer.writerow([image_name, label])
 
 if __name__ == '__main__':
-    # save all frames
 
-    # extract frame per videos
-    # ExtractFrames('../dataset/GBM/GBM 17.avi', '../dataset/Frames', frame_per_sec=100)
-    # removeLogos('../dataset/Frames/meningioma 0/framePerSec-24-24/meningioma 0-frame10.jpg')
+    # # extract frame per GBM video
+    # for i in range(1, 17):
+    #     ExtractFrames('../dataset/GBM/GBM {}.mpg'.format(i), '../dataset/distilledFrames', frame_per_sec=100)
 
 
-    # remove logos in
-    removeLogos('../dataset/Frames')
+    # # extract frame per meningioma video
+    # for i in range(0, 18):
+    #     ExtractFrames('../dataset/meningioma/meningioma {}.mpg'.format(i), '../dataset/distilledFrames', frame_per_sec=100)
 
+    # # remove logos in
+    # removeLogos('../dataset/distilledFrames', '../dataset/cleanDistilledFrames')
+
+    # output annotation
+    output_annotations()
 
 
 ## pytorch implementation to remove logos

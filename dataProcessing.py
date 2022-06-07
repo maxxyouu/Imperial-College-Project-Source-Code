@@ -178,6 +178,52 @@ def output_annotations(output_dir='../', output_name='annotations.csv', input_di
                 if label >= 0:
                     writer.writerow([image_name, label])
 
+class CLE_Data_Handler:
+    def __init__(self, source_loc='../cleanDistilledFrames'):
+        assert(os.path.isdir(source_loc))
+
+        self.patients = os.listdir(source_loc)
+
+        # count how many patients are GBM and how many patients are meinigioma
+        self.num_gbm = sum([1 for p in self.patients if 'GBM' in p])
+        self.num_meningioma = sum([1 for p in self.patients if 'meningioma' in p])
+
+        # 8:1:1 split => 14 2 2
+        
+
+    def split_data(self, num=3):
+        '''
+        if num = 3 => return train, val, test
+        if num = 4 => return train, minival, val, test
+        '''
+        assert(num == 3 or num == 4)
+        
+        # generate index list
+        gbm = [i for i in range(self.num_gbm)]
+        m = [i for i in range(self.num_meningioma)]
+
+        # train
+        gbm_train, m_train = int(self.num_gbm * 0.8), int(self.num_meningioma * 0.8)
+        
+        # val 
+        gbm_val, m_val = int(self.num_gbm * 0.1), int(self.num_meningioma * 0.1)
+
+        # test
+        gbm_test, m_test = self.num_gbm - gbm_train - gbm_val, self.num_meningioma - m_train - m_val
+
+        # use numpy to help the randomness
+        
+
+
+    def write_annotations(self, data):
+        pass
+
+    def mean(self, data):
+        pass
+
+    def var(self, data):
+        pass
+
 if __name__ == '__main__':
 
     # # extract frame per GBM video
@@ -194,19 +240,3 @@ if __name__ == '__main__':
 
     # output annotation
     output_annotations()
-
-
-## pytorch implementation to remove logos
-    # Define a transform to convert PIL 
-    # image to a Torch tensor
-    # tensorToPIL = transforms.ToPILImage()
-    # toTensor = transforms.ToTensor()
-    
-    # transform = transforms.PILToTensor()
-    # Convert the PIL image to Torch tensor
-    # img_tensor = toTensor(image)
-    # img_tensor[..., 303 : 326, 9 : 92] = 0
-    # img_tensor[..., 300 : 333, 333: 397] = 0
-
-    # convert the tensor to PIL image using above transform
-    # img = tensorToPIL(img_tensor)

@@ -56,7 +56,7 @@ class Main:
                 num_samples += preds.size(0)
 
             acc = float(num_correct) / num_samples
-            print('Got %d / %d correct of val set (%.2f)' % (num_correct, num_samples, 100 * acc))
+            # print('Got %d / %d correct of val set (%.2f)' % (num_correct, num_samples, 100 * acc))
 
             return float(acc)
         

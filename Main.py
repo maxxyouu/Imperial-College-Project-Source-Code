@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import os
 
 # set the seed for reproducibility
-rng_seed = 90
+rng_seed = 99
 torch.manual_seed(rng_seed)
 USE_GPU = True
 

@@ -3,12 +3,19 @@ Source code refer to https://www.thepythoncode.com/article/extract-frames-from-v
 '''
 
 # from datetime import timedelta
+from urllib.request import DataHandler
 import cv2
 import numpy as np
 import os
 import csv
 from PIL import Image
+import shutil
+import math
 
+# constant to be used
+GBM = 'GBM'
+MENINGIOMA = 'meningioma' 
+DATA_PARENT_PATH = '../cleanDistilledFrames'
 def format_timedelta(td):
     """Utility function to format timedelta objects in a cool way (e.g 00:00:20.05) 
     omitting microseconds and retaining milliseconds"""
@@ -169,7 +176,7 @@ def output_annotations(output_dir='../', output_name='annotations.csv', input_di
             for image_name in patient_images:
                 if 'GBM' in image_name:
                     label = 0
-                elif 'meningioma':
+                elif 'meningioma' in image_name:
                     label = 1
                 else:
                     label = -1
@@ -178,6 +185,8 @@ def output_annotations(output_dir='../', output_name='annotations.csv', input_di
                 if label >= 0:
                     writer.writerow([image_name, label])
 
+
+
 class CLE_Data_Handler:
     def __init__(self, source_loc='../cleanDistilledFrames'):
         assert(os.path.isdir(source_loc))
@@ -185,38 +194,116 @@ class CLE_Data_Handler:
         self.patients = os.listdir(source_loc)
 
         # count how many patients are GBM and how many patients are meinigioma
-        self.num_gbm = sum([1 for p in self.patients if 'GBM' in p])
-        self.num_meningioma = sum([1 for p in self.patients if 'meningioma' in p])
+        self.gbm_data = sorted([p for p in self.patients if GBM in p])
+        self.m_data = sorted([p for p in self.patients if MENINGIOMA in p])
+
+        self.num_gbm = len(self.gbm_data)
+        self.num_meningioma = len(self.m_data)
 
         # 8:1:1 split => 14 2 2
         
 
-    def split_data(self, num=3):
-        '''
-        if num = 3 => return train, val, test
-        if num = 4 => return train, minival, val, test
-        '''
-        assert(num == 3 or num == 4)
-        
-        # generate index list
-        gbm = [i for i in range(self.num_gbm)]
+    def split_data(self):
+        """
+        Split the data into train, val, test directories and create annotations
+        """        
+        # generate index list for each disease
+        gbm = [i+1 for i in range(self.num_gbm)]
         m = [i for i in range(self.num_meningioma)]
 
         # train
-        gbm_train, m_train = int(self.num_gbm * 0.8), int(self.num_meningioma * 0.8)
+        gbm_train, m_train = math.floor(self.num_gbm * 0.8), math.floor(self.num_meningioma * 0.8)
         
         # val 
-        gbm_val, m_val = int(self.num_gbm * 0.1), int(self.num_meningioma * 0.1)
+        gbm_val, m_val = math.ceil(self.num_gbm * 0.1), math.ceil(self.num_meningioma * 0.1)
 
         # test
         gbm_test, m_test = self.num_gbm - gbm_train - gbm_val, self.num_meningioma - m_train - m_val
 
-        # use numpy to help the randomness
+        # split the patients of GBM into train, val, and test set
+        gbm_train_patient_ids = np.random.choice(gbm, size=gbm_train, replace=False)
+        gbm_val_test = np.setdiff1d(gbm, gbm_train_patient_ids)
+        gbm_val_patient_ids = np.random.choice(gbm_val_test, size=gbm_val, replace=False)
+        gbm_test_patient_ids = np.setdiff1d(gbm_val_test, gbm_val_patient_ids)
+
+        # construct directory name
+        gbm_train_patient_ids = list(map(lambda id: ' '.join([GBM, str(id)]), gbm_train_patient_ids))
+        gbm_val_patient_ids = list(map(lambda id: ' '.join([GBM, str(id)]), gbm_val_patient_ids))
+        gbm_test_patient_ids = list(map(lambda id: ' '.join([GBM, str(id)]), gbm_test_patient_ids))
+
+        # split he patients of M into train, val, and test set
+        m_train_patient_ids = np.random.choice(m, size=m_train, replace=False)
+        m_val_test = np.setdiff1d(m, m_train_patient_ids)
+        m_val_patient_ids = np.random.choice(m_val_test, size=m_val, replace=False)
+        m_test_patient_ids = np.setdiff1d(m_val_test, m_val_patient_ids)
+
+        m_train_patient_ids = list(map(lambda id: ' '.join([MENINGIOMA, str(id)]), m_train_patient_ids))
+        m_val_patient_ids = list(map(lambda id: ' '.join([MENINGIOMA, str(id)]), m_val_patient_ids))
+        m_test_patient_ids = list(map(lambda id: ' '.join([MENINGIOMA, str(id)]), m_test_patient_ids))
+
+        # split to a train, val, and test folder
+        self._combine_patients(gbm_train_patient_ids + m_train_patient_ids, dest='../train')
+        self._combine_patients(gbm_val_patient_ids + m_val_patient_ids, dest='../val')
+        self._combine_patients(gbm_test_patient_ids + m_test_patient_ids, dest='../test')
+
+        # write annotations for each
+        self.write_annotations('../train', 'train_annotations.csv')
+        self.write_annotations('../val', 'val_annotations.csv')
+        self.write_annotations('../test', 'test_annotations.csv')
+
+    def _combine_patients(self, patient_dirs, dest):
         
+        if not os.path.isdir(dest):
+            os.mkdir(dest)
+
+        for patient in patient_dirs:
+            patient_full_dir = os.path.join(DATA_PARENT_PATH, patient)
+            
+            assert(os.path.isdir(patient_full_dir))
+            patient_data = os.listdir(patient_full_dir)
+            # copy file one by one
+            for image_name in patient_data:
+                file_source = os.path.join(patient_full_dir, image_name)
+                if os.path.isfile(file_source):
+                    shutil.copy(file_source, dest)
 
 
-    def write_annotations(self, data):
-        pass
+    def write_annotations(self, data_dir, output_name='annotation.csv'):
+        '''
+        assume data_dir contains files only without directories
+        '''
+        assert(os.path.isdir(data_dir))
+        patient_data = os.listdir(data_dir)  
+        dest = os.path.join('../', output_name)
+
+        # remove the file if exists
+        if os.path.isfile(dest):
+            os.remove(dest)
+
+        with open(dest, 'x', encoding='UTF8') as f:
+
+            # get a csv writer to write data
+            writer = csv.writer(f)
+
+            for frame in patient_data:
+                # make sure it is a directory
+                frame_path = os.path.join(data_dir, frame)
+
+                # skip non-frame file
+                if not os.path.isfile(frame_path):
+                    continue
+                
+                # get its label by name
+                if GBM in frame:
+                    label = 0
+                elif MENINGIOMA in frame:
+                    label = 1
+                else:
+                    label = -1
+
+                # make the it is a valid label
+                if label >= 0:
+                    writer.writerow([frame, label])
 
     def mean(self, data):
         pass
@@ -225,6 +312,19 @@ class CLE_Data_Handler:
         pass
 
 if __name__ == '__main__':
+
+    # create data handler
+    data_handler = CLE_Data_Handler()
+
+    # split data
+    data_handler.split_data()
+
+
+
+
+
+
+
 
     # # extract frame per GBM video
     # for i in range(1, 17):
@@ -239,4 +339,5 @@ if __name__ == '__main__':
     # removeLogos('../dataset/distilledFrames', '../dataset/cleanDistilledFrames')
 
     # output annotation
-    output_annotations()
+    # output_annotations()
+

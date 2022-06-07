@@ -14,6 +14,14 @@ from torchvision import transforms
 WORK_ENV = 'COLAB'
 # WORK_ENV = 'LOCAL'
 
+# if WORK_ENV == 'COLAB':
+#     from tqdm.notebook import tqdm
+# else:
+#     from tqdm import tqdm
+
+import progressbar
+
+
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)
@@ -31,6 +39,7 @@ class Main:
 
         # a pytorch model
         self.model_wrapper = args['model']
+        self.model_name = args['model_name']
 
         # store the dataset
         self.training_data = args['train_data']
@@ -55,8 +64,9 @@ class Main:
         num_correct = 0
         num_samples = 0
         self.model_wrapper.model.eval()  # set model to evaluation mode
+
         with torch.no_grad():
-            for x, y in loader:
+            for x, y in progressbar.progressbar(self.loader_val):
 
                 x = x.to(device=DEVICE, dtype=DTYPE)  # move to device
                 y = y.to(device=DEVICE, dtype=torch.long)
@@ -65,27 +75,28 @@ class Main:
                 _, preds = scores.max(1)
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
-
             acc = float(num_correct) / num_samples
             # print('Got %d / %d correct of val set (%.2f)' % (num_correct, num_samples, 100 * acc))
-
+            
             return float(acc)
         
     def train(self, epochs, print_every=5, model_weights_des='../'):
         self.model_wrapper.model = self.model_wrapper.model.to(device=DEVICE)  # move the model parameters to CPU/GPU
         
         opt_val_acc = 0
-
         for e in range(epochs):
-            for t, (x, y) in enumerate(self.loader_train):
+            for t, (x, y) in progressbar.progressbar(self.loader_train):
                 self.optimizer.zero_grad()
+
+                # add gaussian noise
+                noise = torch.zeros(x.shape, dtype=DTYPE) + (0.1**0.5)*torch.randn(x.shape)
+                x += noise
 
                 self.model_wrapper.model.train()  # put model to training mode
                 x = x.to(device=DEVICE, dtype=DTYPE)  # move to device, e.g. GPU
                 y = y.to(device=DEVICE, dtype=torch.long)
 
                 unnormalized_score = self.model_wrapper.model(x) # unnormalized
-                # loss = F.cross_entropy(scores, y) # TODO: make sure it is appropriate
                 loss = self.loss(unnormalized_score, y) # TODO: make sure it is appropriate
 
                 # Zero out all of the gradients for the variables which the optimizer
@@ -97,11 +108,12 @@ class Main:
                 
                 # log training process
                 val_acc = self.check_accuracy(self.loader_val)
-                # if t % print_every == 0:
-                print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
+                if t % print_every == 0:
+                    print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
                 # save the model if it is currently the optimal
                 if val_acc > opt_val_acc:
+                    print('Saving model')
                     # update the current optimal validation acc
                     opt_val_acc = val_acc
 
@@ -128,11 +140,13 @@ def mu_std(data_loader):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 64
+    BATCH_SIZE = 256
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),
         transforms.CenterCrop((336, 350)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation((0, 270)),
         transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
     ])
 
@@ -162,8 +176,8 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val, batch_size=BATCH_SIZE, shuffle=True)
     test_dataloader = DataLoader(test, batch_size=BATCH_SIZE, shuffle=True)
 
-    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name='resnet18')
-
+    MODEL_NAME = 'resnet18'
+    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=MODEL_NAME)
     params = {
         'train_data': train,
         'loader_train': train_dataloader,
@@ -173,7 +187,8 @@ if __name__ == '__main__':
         'loader_test': test_dataloader,
         'model': resnet18,
         'optimizer': optim.Adamax(resnet18.model.parameters(), lr=0.001, weight_decay=1e-8),
-        'loss': nn.CrossEntropyLoss()
+        'loss': nn.CrossEntropyLoss(),
+        'model_name': MODEL_NAME
     }
     
     main = Main(params)

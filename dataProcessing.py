@@ -319,13 +319,6 @@ if __name__ == '__main__':
     # split data
     data_handler.split_data()
 
-
-
-
-
-
-
-
     # # extract frame per GBM video
     # for i in range(1, 17):
     #     ExtractFrames('../dataset/GBM/GBM {}.mpg'.format(i), '../dataset/distilledFrames', frame_per_sec=100)

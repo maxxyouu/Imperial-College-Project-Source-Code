@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
 
-    
+
 
 
 # Iterate through dataloader to visualize

@@ -4,6 +4,10 @@ from torch import nn
 import torch.nn.functional as F
 import os
 
+# local file import
+from CLEImageDataset import CLEImageDataset
+from BaselineModel import Pytorch_default_resNet
+
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)
@@ -97,6 +101,8 @@ class Main:
                     # save the model to destination
                     model_dest = os.path.join(model_weights_des, '{}.pt'.format(self.model_name))
                     torch.save(self.model.state_dict(), model_dest)
+
+
 
 if __name__ == '__main__':
     pass

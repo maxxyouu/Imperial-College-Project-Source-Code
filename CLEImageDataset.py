@@ -7,7 +7,7 @@ import pandas as pd
 from PIL import Image
 
 class CLEImageDataset(Dataset):
-    def __init__(self, img_dir, annotations_file='../annotations.csv', transform=None, target_transform=None):
+    def __init__(self, img_dir, annotations_file, transform=None, target_transform=None):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
@@ -45,13 +45,13 @@ class CLEImageDataset(Dataset):
 
         return image, label
 
-if __name__ == '__main__':
-    # test if the custom dataset works
-    all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
-    train_dataloader = DataLoader(all_data, batch_size=3, shuffle=True)
-    train_features, train_labels = next(iter(train_dataloader))
-    print(f"Feature batch shape: {train_features.size()}")
-    print(f"Labels batch shape: {train_labels.size()}")
+# if __name__ == '__main__':
+#     # test if the custom dataset works
+#     all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
+#     train_dataloader = DataLoader(all_data, batch_size=3, shuffle=True)
+#     train_features, train_labels = next(iter(train_dataloader))
+#     print(f"Feature batch shape: {train_features.size()}")
+#     print(f"Labels batch shape: {train_labels.size()}")
 
 
 # Iterate through dataloader to visualize

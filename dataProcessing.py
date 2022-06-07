@@ -305,12 +305,6 @@ class CLE_Data_Handler:
                 if label >= 0:
                     writer.writerow([frame, label])
 
-    def mean(self, data):
-        pass
-
-    def var(self, data):
-        pass
-
 if __name__ == '__main__':
 
     # create data handler

@@ -11,8 +11,8 @@ from BaselineModel import Pytorch_default_resNet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-WORK_ENV = 'COLAB'
-# WORK_ENV = 'LOCAL'
+# WORK_ENV = 'COLAB'
+WORK_ENV = 'LOCAL'
 
 # if WORK_ENV == 'COLAB':
 #     from tqdm.notebook import tqdm
@@ -85,7 +85,7 @@ class Main:
         
         opt_val_acc = 0
         for e in range(epochs):
-            for t, (x, y) in progressbar.progressbar(self.loader_train):
+            for t, (x, y) in enumerate(progressbar.progressbar(self.loader_train)):
                 self.optimizer.zero_grad()
 
                 # add gaussian noise
@@ -140,7 +140,7 @@ def mu_std(data_loader):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 256
+    BATCH_SIZE = 5
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),

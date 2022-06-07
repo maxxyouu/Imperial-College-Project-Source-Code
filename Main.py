@@ -97,8 +97,8 @@ class Main:
                 
                 # log training process
                 val_acc = self.check_accuracy(self.loader_val)
-                if t % print_every == 0:
-                    print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
+                # if t % print_every == 0:
+                print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
                 # save the model if it is currently the optimal
                 if val_acc > opt_val_acc:

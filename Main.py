@@ -11,6 +11,8 @@ from BaselineModel import Pytorch_default_resNet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
+WORK_ENV = 'COLAB'
+# WORK_ENV = 'LOCAL'
 
 # set the seed for reproducibility
 rng_seed = 99
@@ -134,9 +136,27 @@ if __name__ == '__main__':
         transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
     ])
 
-    train = CLEImageDataset('../train', annotations_file='../train_annotations.csv', transform=transforms)
-    val = CLEImageDataset('../val', annotations_file='../val_annotations.csv', transform=transforms)
-    test = CLEImageDataset('../test', annotations_file='../test_annotations.csv', transform=transforms)
+    if WORK_ENV == 'COLAB':
+        train_datapath = '/content/drive/MyDrive/CLEdata/train'
+        val_datapath = '/content/drive/MyDrive/CLEdata/val'
+        test_datapath = '/content/drive/MyDrive/CLEdata/test'
+
+        train_annotationPath = '/content/drive/MyDrive/CLEdata/train_annotations.csv'
+        val_annotationPath = '/content/drive/MyDrive/CLEdata/val_annotations.csv'
+        test_annotationPath = '/content/drive/MyDrive/CLEdata/test_annotations.csv'
+
+    else: # local
+        train_datapath = '../train'
+        val_datapath = '../val'
+        test_datapath = '../test'
+
+        train_annotationPath = '../train_annotations.csv'
+        val_annotationPath = '../val_annotations.csv'
+        test_annotationPath = '../test_annotations.csv'
+
+    train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=transforms)
+    val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=transforms)
+    test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=transforms)
 
     train_dataloader = DataLoader(train, batch_size=BATCH_SIZE, shuffle=True)
     val_dataloader = DataLoader(val, batch_size=BATCH_SIZE, shuffle=True)

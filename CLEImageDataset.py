@@ -1,3 +1,4 @@
+from pickle import NONE
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -12,14 +13,19 @@ class CLEImageDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
+    def transformation(self, transforms):
+        assert(self.transform is None)
+        self.transform = transforms
+
     def __len__(self):
         return len(self.img_labels)
 
     def _get_image_path(self, idx):
-        elements = self.img_labels.iloc[idx, 0].split()[0:2]
-        disease, patient_id =elements[0], elements[-1][0:elements[1].index('-')]
-        patient_dir = ' '.join([disease, patient_id])
-        img_path = os.path.join(self.img_dir, patient_dir, self.img_labels.iloc[idx, 0])
+        # elements = self.img_labels.iloc[idx, 0].split()[0:2]
+        # disease, patient_id =elements[0], elements[-1][0:elements[1].index('-')]
+        # patient_dir = ' '.join([disease, patient_id])
+        # img_path = os.path.join(self.img_dir, patient_dir, self.img_labels.iloc[idx, 0])
+        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
         return img_path
         
     def __getitem__(self, idx):
@@ -46,8 +52,6 @@ if __name__ == '__main__':
     train_features, train_labels = next(iter(train_dataloader))
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
-
-
 
 
 # Iterate through dataloader to visualize

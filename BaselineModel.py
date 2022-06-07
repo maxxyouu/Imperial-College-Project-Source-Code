@@ -35,11 +35,11 @@ class Pytorch_default_resNet(Baseline_Model):
     Args:
         Baseline_Model (_type_): _description_
     """
-    def __init__(self, num_classes=2, pretrain=False, model_name='resnet18') -> None:
+    def __init__(self, dtype, device, num_classes=2, pretrain=False, model_name='resnet18') -> None:
         super().__init__(pretrain, model_name)
 
         # modify the model to match our dataset with two class only
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
 
 if __name__ == '__main__':
     print(torch. __version__)

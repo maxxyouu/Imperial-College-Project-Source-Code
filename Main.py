@@ -16,6 +16,12 @@ from torchvision import transforms
 rng_seed = 99
 torch.manual_seed(rng_seed)
 USE_GPU = True
+# training device
+DTYPE = torch.float32
+DEVICE = torch.device('cpu')
+if USE_GPU and torch.cuda.is_available():
+    DEVICE = torch.device('cuda:0')
+print('Device being used: {}'.format(DEVICE))
 
 # main class responsible for training
 class Main:
@@ -41,13 +47,6 @@ class Main:
         # logit
         # self.softmax = nn.Softmax(dim=1) # TODO: check the dimension
 
-        # training device
-        self.dtype = torch.float32
-        self.device = torch.device('cpu')
-        if USE_GPU and torch.cuda.is_available():
-            self.device = torch.device('cuda:0')
-        print('Device being used: {}'.format(self.device))
-
     def check_accuracy(self, loader):
         # function for test accuracy on validation and test set
         
@@ -57,8 +56,8 @@ class Main:
         with torch.no_grad():
             for x, y in loader:
 
-                x = x.to(device=self.device, dtype=self.dtype)  # move to device
-                y = y.to(device=self.device, dtype=torch.long)
+                x = x.to(device=DEVICE, dtype=DTYPE)  # move to device
+                y = y.to(device=DEVICE, dtype=torch.long)
 
                 scores = self.model_wrapper.model(x)
                 _, preds = scores.max(1)
@@ -71,7 +70,7 @@ class Main:
             return float(acc)
         
     def train(self, epochs, print_every=5, model_weights_des='../'):
-        self.model_wrapper.model = self.model_wrapper.model.to(device=self.device)  # move the model parameters to CPU/GPU
+        self.model_wrapper.model = self.model_wrapper.model.to(device=DEVICE)  # move the model parameters to CPU/GPU
         
         opt_val_acc = 0
 
@@ -80,8 +79,8 @@ class Main:
                 self.optimizer.zero_grad()
 
                 self.model_wrapper.model.train()  # put model to training mode
-                x = x.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
-                y = y.to(device=self.device, dtype=torch.long)
+                x = x.to(device=DEVICE, dtype=DTYPE)  # move to device, e.g. GPU
+                y = y.to(device=DEVICE, dtype=torch.long)
 
                 unnormalized_score = self.model_wrapper.model(x) # unnormalized
                 # loss = F.cross_entropy(scores, y) # TODO: make sure it is appropriate
@@ -127,21 +126,22 @@ def mu_std(data_loader):
 
 
 if __name__ == '__main__':
+    BATCH_SIZE = 3
     transforms = transforms.Compose([
         transforms.ToTensor(), 
-        transforms.Grayscale(1),
-        transforms.Normalize([0.1496], [0.1960])
+        # transforms.Grayscale(1),
+        transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
     ])
 
     train = CLEImageDataset('../train', annotations_file='../train_annotations.csv', transform=transforms)
     val = CLEImageDataset('../val', annotations_file='../val_annotations.csv', transform=transforms)
     test = CLEImageDataset('../test', annotations_file='../test_annotations.csv', transform=transforms)
 
-    train_dataloader = DataLoader(train, batch_size=50, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=50, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=50, shuffle=True)
+    train_dataloader = DataLoader(train, batch_size=BATCH_SIZE, shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=BATCH_SIZE, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=BATCH_SIZE, shuffle=True)
 
-    resnet34 = Pytorch_default_resNet('resnet34')
+    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name='resnet18')
 
     params = {
         'train_data': train,
@@ -150,8 +150,8 @@ if __name__ == '__main__':
         'loader_val': val_dataloader,
         'test_data': test,
         'loader_test': test_dataloader,
-        'model': resnet34,
-        'optimizer': optim.Adamax(resnet34.model.parameters(), lr=0.001, weight_decay=1e-8),
+        'model': resnet18,
+        'optimizer': optim.Adamax(resnet18.model.parameters(), lr=0.001, weight_decay=1e-8),
         'loss': nn.CrossEntropyLoss()
     }
     

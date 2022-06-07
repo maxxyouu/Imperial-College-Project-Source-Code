@@ -16,7 +16,6 @@ WORK_ENV = 'COLAB'
 
 import progressbar
 
-
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)
@@ -135,7 +134,7 @@ def mu_std(data_loader):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 5
+    BATCH_SIZE = 256
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),

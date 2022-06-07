@@ -76,9 +76,12 @@ class Main:
         
     def train(self, epochs, print_every=5, model_weights_des='../'):
         self.model_wrapper.model = self.model_wrapper.model.to(device=DEVICE)  # move the model parameters to CPU/GPU
-        
+
         opt_val_acc = 0
+        patience, optimal_epoch_acc = 5, 0
+
         for e in range(epochs):
+            epoch_val_acc  = []
             for t, (x, y) in enumerate(progressbar.progressbar(self.loader_train)):
                 self.optimizer.zero_grad()
 
@@ -102,6 +105,7 @@ class Main:
                 
                 # log training process
                 val_acc = self.check_accuracy(self.loader_val)
+                epoch_val_acc.append(val_acc)
                 if t % print_every == 0:
                     print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
@@ -114,6 +118,21 @@ class Main:
                     # save the model to destination
                     model_dest = os.path.join(model_weights_des, '{}.pt'.format(self.model_name))
                     torch.save(self.model_wrapper.model.state_dict(), model_dest)
+
+            # average epoch acc
+            epoch_acc = sum(epoch_val_acc)/len(epoch_val_acc)
+            print('Epoch {} validation acc: {}'.format(e, epoch_acc))
+
+            if optimal_epoch_acc < epoch_acc:
+                 epoch_acc = optimal_epoch_acc
+                 patience = 5
+            else:
+                patience -= 1
+
+            # stop training when epoch acc no longer improve for consecutive {patience} epochs
+            if patience <= 0:
+                break
+
 
 def mu_std(data_loader):
     count = 0

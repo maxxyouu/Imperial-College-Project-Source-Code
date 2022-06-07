@@ -130,6 +130,7 @@ if __name__ == '__main__':
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),
+        transforms.CenterCrop((336, 350)),
         transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
     ])
 

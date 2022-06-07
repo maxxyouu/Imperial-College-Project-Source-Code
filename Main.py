@@ -11,13 +11,8 @@ from BaselineModel import Pytorch_default_resNet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-# WORK_ENV = 'COLAB'
-WORK_ENV = 'LOCAL'
-
-# if WORK_ENV == 'COLAB':
-#     from tqdm.notebook import tqdm
-# else:
-#     from tqdm import tqdm
+WORK_ENV = 'COLAB'
+# WORK_ENV = 'LOCAL'
 
 import progressbar
 

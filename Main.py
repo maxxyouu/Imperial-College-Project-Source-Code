@@ -206,7 +206,7 @@ if __name__ == '__main__':
     
     main = Main(params)
     print('Training Started')
-    main.train(5)
+    main.train(20)
 
     ## find the mean and variance
     # all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))

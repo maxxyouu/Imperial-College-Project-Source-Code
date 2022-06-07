@@ -128,7 +128,7 @@ def mu_std(data_loader):
 
 
 if __name__ == '__main__':
-    BATCH_SIZE = 3
+    BATCH_SIZE = 64
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),

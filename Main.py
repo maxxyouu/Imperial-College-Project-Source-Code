@@ -208,6 +208,9 @@ if __name__ == '__main__':
     print('Training Started')
     main.train(20)
 
+    # check test accuracy
+    main.check_accuracy(test_dataloader)
+
     ## find the mean and variance
     # all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
     # all_data_loader = DataLoader(all_data, batch_size=100, shuffle=True)

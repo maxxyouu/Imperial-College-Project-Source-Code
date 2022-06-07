@@ -177,6 +177,7 @@ if __name__ == '__main__':
     }
     
     main = Main(params)
+    print('Training Started')
     main.train(5)
 
     ## find the mean and variance

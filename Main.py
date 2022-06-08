@@ -13,6 +13,9 @@ from torchvision import transforms
 
 # WORK_ENV = 'COLAB'
 WORK_ENV = 'LOCAL'
+DATA_PARENT_PATH = '../'
+if WORK_ENV == 'COLAB':
+    DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
 
 import progressbar
 
@@ -195,22 +198,22 @@ if __name__ == '__main__':
     ])
 
     if WORK_ENV == 'COLAB':
-        train_datapath = '/content/drive/MyDrive/CLEdata/train'
-        val_datapath = '/content/drive/MyDrive/CLEdata/val'
-        test_datapath = '/content/drive/MyDrive/CLEdata/test'
+        train_datapath = '{}train'.format(DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(DATA_PARENT_PATH)
 
-        train_annotationPath = '/content/drive/MyDrive/CLEdata/train_annotations.csv'
-        val_annotationPath = '/content/drive/MyDrive/CLEdata/val_annotations.csv'
-        test_annotationPath = '/content/drive/MyDrive/CLEdata/test_annotations.csv'
+        train_annotationPath = '{}train_annotations.csv'.format(DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(DATA_PARENT_PATH)
 
     else: # local
-        train_datapath = '../train'
-        val_datapath = '../val'
-        test_datapath = '../test'
+        train_datapath = '{}train'.format(DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(DATA_PARENT_PATH)
 
-        train_annotationPath = '../train_annotations.csv'
-        val_annotationPath = '../val_annotations.csv'
-        test_annotationPath = '../test_annotations.csv'
+        train_annotationPath = '{}train_annotations.csv'.format(DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(DATA_PARENT_PATH)
 
     train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=transforms)
     val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=transforms)

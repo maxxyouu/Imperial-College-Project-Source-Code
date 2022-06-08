@@ -43,7 +43,7 @@ class Pytorch_default_resNet(Baseline_Model):
 
 if __name__ == '__main__':
     print(torch. __version__)
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=False)
+    # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=False)
 
     default_resnet = Pytorch_default_resNet()
     default_resnet.view_model()

@@ -169,7 +169,7 @@ def extract_args():
                             type=int, default=256,
                             help='batch size to be used for training / testing')             
     my_parser.add_argument('--epochs',
-                            type=int, default=20,
+                            type=int, default=30,
                             help='training epochs')   
     my_parser.add_argument('--earlyStoppingPatience',
                             type=int, default=5,
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val, batch_size=args.batchSize, shuffle=True)
     test_dataloader = DataLoader(test, batch_size=args.batchSize, shuffle=True)
 
-    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=args.model, pretrain=args.pretrain)
+    model_wrapper = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=args.model, pretrain=args.pretrain)
     params = {
         'train_data': train,
         'loader_train': train_dataloader,
@@ -231,8 +231,8 @@ if __name__ == '__main__':
         'loader_val': val_dataloader,
         'test_data': test,
         'loader_test': test_dataloader,
-        'model': resnet18,
-        'optimizer': optim.Adamax(resnet18.model.parameters(), lr=args.learningRate, weight_decay=1e-8),
+        'model': model_wrapper,
+        'optimizer': optim.Adamax(model_wrapper.model.parameters(), lr=args.learningRate, weight_decay=1e-8),
         'loss': nn.CrossEntropyLoss(),
         'model_name': args.model,
         'patience': args.earlyStoppingPatience,

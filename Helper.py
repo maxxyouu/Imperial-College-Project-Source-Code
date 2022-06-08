@@ -1,6 +1,7 @@
 import torch
 import argparse
-
+from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from Constants import WORK_ENV
 def mu_std(data_loader):
     count = 0
     mean, var = 0, 0
@@ -44,5 +45,24 @@ def extract_args():
 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
-
     return args
+
+
+# 'gradcam', 'gradcam++', 'scorecam', 'ablationcam', 'xgradcam', 'eigencam', 'fullgradcam']
+def switch_cam(cam, model, target_layers):
+    if cam == 'gradcam':
+        return GradCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'gradcam++':
+        return GradCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'scorecam':
+        return ScoreCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'ablationcam':
+        return AblationCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'xgradcam':
+        return XGradCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'eigencam':
+        return EigenCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'fullgradcam':
+        return FullGrad(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    else:
+        print('NO SUCH CAM EXISTS')

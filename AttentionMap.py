@@ -38,7 +38,7 @@ if __name__ == '__main__':
         x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
         for cam_name in cams:
             cam = switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) 
-       
+            print('--------- Forward Passing {}'.format(cam_name))
             grayscale_cam = cam(input_tensor=x, targets=None)
             
             # for each image in a batch

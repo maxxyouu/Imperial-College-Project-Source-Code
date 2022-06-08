@@ -4,15 +4,15 @@ from torch import nn
 import torch.nn.functional as F
 import os
 import torch.optim as optim
-
+import argparse
 # local file import
 from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-WORK_ENV = 'COLAB'
-# WORK_ENV = 'LOCAL'
+# WORK_ENV = 'COLAB'
+WORK_ENV = 'LOCAL'
 
 import progressbar
 
@@ -49,8 +49,9 @@ class Main:
         # define a loss function
         self.loss = args['loss'] #nn.CrossEntropyLoss()
         
-        # logit
-        # self.softmax = nn.Softmax(dim=1) # TODO: check the dimension
+        # for early stopping
+        self.earlyStopping_patience = args['patience']
+        self.epochs = args['epochs']
 
     def check_accuracy(self, loader):
         # function for test accuracy on validation and test set
@@ -70,17 +71,16 @@ class Main:
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
             acc = float(num_correct) / num_samples
-            # print('Got %d / %d correct of val set (%.2f)' % (num_correct, num_samples, 100 * acc))
             
             return float(acc)
         
-    def train(self, epochs, print_every=5, model_weights_des='../'):
+    def train(self, print_every=5, model_weights_des='../'):
         self.model_wrapper.model = self.model_wrapper.model.to(device=DEVICE)  # move the model parameters to CPU/GPU
 
         opt_val_acc = 0
         patience, optimal_epoch_acc = 5, 0
 
-        for e in range(epochs):
+        for e in range(self.epochs):
             epoch_val_acc  = []
             for t, (x, y) in enumerate(progressbar.progressbar(self.loader_train)):
                 self.optimizer.zero_grad()
@@ -125,7 +125,7 @@ class Main:
 
             if optimal_epoch_acc < epoch_acc:
                  epoch_acc = optimal_epoch_acc
-                 patience = 5
+                 patience = self.earlyStopping_patience
             else:
                 patience -= 1
 
@@ -152,8 +152,39 @@ def mu_std(data_loader):
     return mean, std
 
 
+def extract_args():
+    my_parser = argparse.ArgumentParser(description='')
+
+    # Add the arguments
+    my_parser.add_argument('--model',
+                            type=str, default='resnet18',
+                            help='model to be used for training / testing')
+    my_parser.add_argument('--pretrain',
+                            type=bool, default=False,
+                            help='whether to use a pretrained model')
+    my_parser.add_argument('--batchSize',
+                            type=int, default=256,
+                            help='batch size to be used for training / testing')             
+    my_parser.add_argument('--epochs',
+                            type=int, default=20,
+                            help='training epochs')   
+    my_parser.add_argument('--earlyStoppingPatience',
+                            type=int, default=5,
+                            help='early stopping patience to terminate the training process')   
+    my_parser.add_argument('--learningRate',
+                            type=float, default=0.001,
+                            help='learning rate for training')   
+
+    # Execute the parse_args() method
+    args = my_parser.parse_args()                                              
+
+    return args
+
 if __name__ == '__main__':
-    BATCH_SIZE = 256
+
+    # extract argument from users
+    args = extract_args()
+
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),
@@ -185,12 +216,11 @@ if __name__ == '__main__':
     val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=transforms)
     test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=transforms)
 
-    train_dataloader = DataLoader(train, batch_size=BATCH_SIZE, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=BATCH_SIZE, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=BATCH_SIZE, shuffle=True)
+    train_dataloader = DataLoader(train, batch_size=args.batchSize, shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=args.batchSize, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=args.batchSize, shuffle=True)
 
-    MODEL_NAME = 'resnet18'
-    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=MODEL_NAME)
+    resnet18 = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=args.model, pretrain=args.pretrain)
     params = {
         'train_data': train,
         'loader_train': train_dataloader,
@@ -199,17 +229,16 @@ if __name__ == '__main__':
         'test_data': test,
         'loader_test': test_dataloader,
         'model': resnet18,
-        'optimizer': optim.Adamax(resnet18.model.parameters(), lr=0.001, weight_decay=1e-8),
+        'optimizer': optim.Adamax(resnet18.model.parameters(), lr=args.learningRate, weight_decay=1e-8),
         'loss': nn.CrossEntropyLoss(),
-        'model_name': MODEL_NAME
+        'model_name': args.model,
+        'patience': args.earlyStoppingPatience,
+        'epochs': args.epochs
     }
     
     main = Main(params)
     print('Training Started')
     main.train(20)
-
-    # check test accuracy
-    main.check_accuracy(test_dataloader)
 
     ## find the mean and variance
     # all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))

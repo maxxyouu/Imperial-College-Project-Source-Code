@@ -28,7 +28,7 @@ class Baseline_Model:
         print(self.model.parameters)
     
     def load_learned_weights(self, weight_pickle='model.pt'):
-        self.model.load_state_dict(torch.load(weight_pickle))
+        self.model.load_state_dict(torch.load(weight_pickle, map_location=Constants.DEVICE))
 
 class Pytorch_default_resNet(Baseline_Model):
     """default resnet model from pytorch
@@ -48,9 +48,11 @@ class Pytorch_default_vgg(Baseline_Model):
 
         # modify the model to match our dataset with two class only
         self.model.classifier[6] = nn.Linear(self.model.classifier[6].in_features, num_classes, device=device, dtype=dtype)
+
+
 if __name__ == '__main__':
     # print(torch. __version__)
-    # model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11_bn', pretrained=False)
+    model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11_bn', pretrained=False)
 
     # net = Pytorch_default_vgg(dtype=Constants.DTYPE, device=Constants.DEVICE)
     # net.view_model()

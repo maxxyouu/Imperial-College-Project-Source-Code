@@ -1,12 +1,13 @@
-
 import torch
 from torch import nn
+import torchvision
 import torch.nn.functional as F
 import os
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import progressbar
+import PIL
 
 # local file import
 from CLEImageDataset import CLEImageDataset
@@ -44,27 +45,65 @@ class Main:
         # for early stopping
         self.earlyStopping_patience = args['patience']
         self.epochs = args['epochs']
+    
+    def _extract_correct_preds_and_save(self, preds, y, features):
+        """store the correctedly classified sample to the corresponding folder
 
-    def check_accuracy(self, loader):
+        Args:
+            preds (_type_): prediction from model
+            y (_type_): labels
+            features (_type_): 4d tensor
+        """
+        # denorm the features
+        features = features.mul(Constants.DATA_STD).add(Constants.DATA_MEAN)
+
+        correct_classifications = (preds == y)
+        
+        # get the corresponding images from the batch
+        correct_pred_samples = features[correct_classifications, :, :, :]
+        # get the corresponding label
+        correct_classified_labels = y[correct_classifications]
+
+        # create directory the model's subdirectory if not exists
+        dest = os.path.join(Constants.STORAGE_PATH, 'correct_preds')
+        if not os.path.exists(dest):
+            os.mkdir(dest)
+        dest = os.path.join(dest, self.model_name)
+        if not os.path.exists(dest):
+            os.mkdir(dest)
+
+        for i, (_, label) in enumerate(zip(correct_pred_samples, correct_classified_labels)):
+            torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, '{}-label{}.jpg'.format(i, label)))
+
+    def check_accuracy(self, loader, best_model=False, store_sample=False):
         # function for test accuracy on validation and test set
         
+        if best_model:
+            self.model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(self.model_name))
+            print('Finished Loading the Best Model for {}'.format(self.model_name))
+
         num_correct = 0
         num_samples = 0
-        self.model_wrapper.model.eval()  # set model to evaluation mode
+        acc = 0
 
+        self.model_wrapper.model.eval()  # set model to evaluation mode
         with torch.no_grad():
-            for x, y in progressbar.progressbar(self.loader_val):
+            for x, y in loader:
 
                 x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device
                 y = y.to(device=Constants.DEVICE, dtype=torch.long)
 
                 scores = self.model_wrapper.model(x)
                 _, preds = scores.max(1)
+
+                if store_sample:
+                    self._extract_correct_preds_and_save(preds, y, x)
+
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
-            acc = float(num_correct) / num_samples
-            
-            return float(acc)
+
+        acc = float(num_correct) / num_samples    
+        return float(acc)
         
     def train(self, print_every=5, model_weights_des='../'):
         self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
@@ -96,11 +135,11 @@ class Main:
                 val_acc = self.check_accuracy(self.loader_val)
                 epoch_val_acc.append(val_acc)
                 if t % print_every == 0:
-                    print('Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
+                    print('\n Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
                 # save the model if it is currently the optimal
                 if val_acc > opt_val_acc:
-                    print('Saving model')
+                    print('\n Saving model')
                     # update the current optimal validation acc
                     opt_val_acc = val_acc
 
@@ -110,7 +149,7 @@ class Main:
 
             # average epoch acc
             epoch_acc = sum(epoch_val_acc)/len(epoch_val_acc)
-            print('Epoch {} validation acc: {}'.format(e, epoch_acc))
+            print('\n Epoch {} validation acc: {}'.format(e, epoch_acc))
 
             if optimal_epoch_acc < epoch_acc:
                  epoch_acc = optimal_epoch_acc
@@ -134,7 +173,10 @@ if __name__ == '__main__':
         transforms.CenterCrop((336, 350)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomRotation((0, 270)),
-        transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
+        transforms.Normalize(
+            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
+        )
     ])
 
     if Constants.WORK_ENV == 'COLAB':
@@ -181,7 +223,23 @@ if __name__ == '__main__':
     
     main = Main(params)
     print('Training Started')
-    main.train(20)
+    # main.train(20)
+
+    main.check_accuracy(main.loader_test, True, True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     ## find the mean and variance
     # all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))

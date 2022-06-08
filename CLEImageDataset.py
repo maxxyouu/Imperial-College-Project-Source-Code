@@ -1,7 +1,4 @@
-from pickle import NONE
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-from torchvision import transforms
 import os
 import pandas as pd
 from PIL import Image

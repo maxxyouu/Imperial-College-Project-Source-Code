@@ -1,6 +1,6 @@
 import torch
 import argparse
-from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
 from Constants import WORK_ENV
 def mu_std(data_loader):
     count = 0
@@ -64,5 +64,7 @@ def switch_cam(cam, model, target_layers):
         return EigenCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
     elif cam == 'fullgradcam':
         return FullGrad(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'layercam':
+        return LayerCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
     else:
         print('NO SUCH CAM EXISTS')

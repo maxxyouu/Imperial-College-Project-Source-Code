@@ -52,7 +52,7 @@ class Pytorch_default_vgg(Baseline_Model):
 
 if __name__ == '__main__':
     # print(torch. __version__)
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11_bn', pretrained=False)
+    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
     # net = Pytorch_default_vgg(dtype=Constants.DTYPE, device=Constants.DEVICE)
     # net.view_model()

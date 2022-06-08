@@ -6,6 +6,7 @@ import os
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import progressbar
 
 # local file import
 from CLEImageDataset import CLEImageDataset
@@ -13,23 +14,9 @@ from BaselineModel import Pytorch_default_resNet
 from Helper import extract_args
 import Constants
 
-# Constants.WORK_ENV = 'COLAB'
-# Constants.WORK_ENV = 'LOCAL'
-# Constants.DATA_PARENT_PATH = '../'
-# if Constants.WORK_ENV == 'COLAB':
-#     Constants.DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
-
-import progressbar
-
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)
-# Constants.USE_GPU = True
-# # training device
-# Constants.DTYPE = torch.float32
-# Constants.DEVICE = torch.device('cpu')
-# if Constants.USE_GPU and torch.cuda.is_available():
-#     Constants.DEVICE = torch.device('cuda:0')
 print('Device being used: {}'.format(Constants.DEVICE))
 
 # main class responsible for training
@@ -100,9 +87,6 @@ class Main:
 
                 unnormalized_score = self.model_wrapper.model(x) # unnormalized
                 loss = self.loss(unnormalized_score, y) # TODO: make sure it is appropriate
-
-                # Zero out all of the gradients for the variables which the optimizer
-                # will update.
 
                 # Update the parameters of the model using the gradients
                 loss.backward()

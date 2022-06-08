@@ -11,25 +11,26 @@ from torchvision import transforms
 from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
 from Helper import extract_args
+import Constants
 
-# WORK_ENV = 'COLAB'
-WORK_ENV = 'LOCAL'
-DATA_PARENT_PATH = '../'
-if WORK_ENV == 'COLAB':
-    DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
+# Constants.WORK_ENV = 'COLAB'
+# Constants.WORK_ENV = 'LOCAL'
+# Constants.DATA_PARENT_PATH = '../'
+# if Constants.WORK_ENV == 'COLAB':
+#     Constants.DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
 
 import progressbar
 
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)
-USE_GPU = True
-# training device
-DTYPE = torch.float32
-DEVICE = torch.device('cpu')
-if USE_GPU and torch.cuda.is_available():
-    DEVICE = torch.device('cuda:0')
-print('Device being used: {}'.format(DEVICE))
+# Constants.USE_GPU = True
+# # training device
+# Constants.DTYPE = torch.float32
+# Constants.DEVICE = torch.device('cpu')
+# if Constants.USE_GPU and torch.cuda.is_available():
+#     Constants.DEVICE = torch.device('cuda:0')
+print('Device being used: {}'.format(Constants.DEVICE))
 
 # main class responsible for training
 class Main:
@@ -67,8 +68,8 @@ class Main:
         with torch.no_grad():
             for x, y in progressbar.progressbar(self.loader_val):
 
-                x = x.to(device=DEVICE, dtype=DTYPE)  # move to device
-                y = y.to(device=DEVICE, dtype=torch.long)
+                x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device
+                y = y.to(device=Constants.DEVICE, dtype=torch.long)
 
                 scores = self.model_wrapper.model(x)
                 _, preds = scores.max(1)
@@ -79,7 +80,7 @@ class Main:
             return float(acc)
         
     def train(self, print_every=5, model_weights_des='../'):
-        self.model_wrapper.model = self.model_wrapper.model.to(device=DEVICE)  # move the model parameters to CPU/GPU
+        self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
 
         opt_val_acc = 0
         patience, optimal_epoch_acc = 5, 0
@@ -90,12 +91,12 @@ class Main:
                 self.optimizer.zero_grad()
 
                 # add gaussian noise
-                noise = torch.zeros(x.shape, dtype=DTYPE) + (0.1**0.5)*torch.randn(x.shape)
+                noise = torch.zeros(x.shape, dtype=Constants.DTYPE) + (0.1**0.5)*torch.randn(x.shape)
                 x += noise
 
                 self.model_wrapper.model.train()  # put model to training mode
-                x = x.to(device=DEVICE, dtype=DTYPE)  # move to device, e.g. GPU
-                y = y.to(device=DEVICE, dtype=torch.long)
+                x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device, e.g. GPU
+                y = y.to(device=Constants.DEVICE, dtype=torch.long)
 
                 unnormalized_score = self.model_wrapper.model(x) # unnormalized
                 loss = self.loss(unnormalized_score, y) # TODO: make sure it is appropriate
@@ -152,23 +153,23 @@ if __name__ == '__main__':
         transforms.Normalize([0.1496,0.1496,0.1496], [0.1960,0.1960,0.1960])
     ])
 
-    if WORK_ENV == 'COLAB':
-        train_datapath = '{}train'.format(DATA_PARENT_PATH)
-        val_datapath = '{}val'.format(DATA_PARENT_PATH)
-        test_datapath = '{}test'.format(DATA_PARENT_PATH)
+    if Constants.WORK_ENV == 'COLAB':
+        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
 
-        train_annotationPath = '{}train_annotations.csv'.format(DATA_PARENT_PATH)
-        val_annotationPath = '{}val_annotations.csv'.format(DATA_PARENT_PATH)
-        test_annotationPath = '{}test_annotations.csv'.format(DATA_PARENT_PATH)
+        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
 
     else: # local
-        train_datapath = '{}train'.format(DATA_PARENT_PATH)
-        val_datapath = '{}val'.format(DATA_PARENT_PATH)
-        test_datapath = '{}test'.format(DATA_PARENT_PATH)
+        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
 
-        train_annotationPath = '{}train_annotations.csv'.format(DATA_PARENT_PATH)
-        val_annotationPath = '{}val_annotations.csv'.format(DATA_PARENT_PATH)
-        test_annotationPath = '{}test_annotations.csv'.format(DATA_PARENT_PATH)
+        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
 
     train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=transforms)
     val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=transforms)
@@ -178,7 +179,7 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val, batch_size=args.batchSize, shuffle=True)
     test_dataloader = DataLoader(test, batch_size=args.batchSize, shuffle=True)
 
-    model_wrapper = Pytorch_default_resNet(device=DEVICE, dtype=DTYPE, model_name=args.model, pretrain=args.pretrain)
+    model_wrapper = Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=args.model, pretrain=args.pretrain)
     params = {
         'train_data': train,
         'loader_train': train_dataloader,

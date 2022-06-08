@@ -4,22 +4,22 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "Main.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--model", "resnet50",
-                // "--pretrain", "False",
-                // "--batchSize", "256",
-                // "--epochs", "30",
-                // "--earlyStoppingPatience", "5",
-                // "--learningRate", "0.001"
-            ],
-            "justMyCode": true
-        },
+        // {
+        //     "name": "Python: Current File",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "Main.py",
+        //     "console": "integratedTerminal",
+        //     "args": [
+        //         "--model", "resnet50",
+        //         // "--pretrain", "False",
+        //         // "--batchSize", "256",
+        //         // "--epochs", "30",
+        //         // "--earlyStoppingPatience", "5",
+        //         // "--learningRate", "0.001"
+        //     ],
+        //     "justMyCode": true
+        // },
         {
             "name": "Python: Current File",
             "type": "python",

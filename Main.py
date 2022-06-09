@@ -171,7 +171,7 @@ if __name__ == '__main__':
     transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),
-        transforms.CenterCrop((336, 350)),
+        transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
         transforms.RandomHorizontalFlip(),
         transforms.RandomRotation((0, 270)),
         transforms.Normalize(

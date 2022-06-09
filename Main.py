@@ -88,7 +88,8 @@ class Main:
         # function for test accuracy on validation and test set
         
         if best_model:
-            self.model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(self.model_name))
+            trained_model_loc = os.path.join(Constants.SAVED_MODEL_PATH, '{}.pt'.format(self.model_name))
+            self.model_wrapper.load_learned_weights(trained_model_loc)
             print('Finished Loading the Best Model for {}'.format(self.model_name))
 
         num_correct = 0
@@ -109,6 +110,7 @@ class Main:
                 losses.append(self.loss(scores, y))
 
                 if store_sample:
+                    print('Saving correctly classified images')
                     self._extract_correct_preds_and_save(preds, y, x)
 
                 num_correct += (preds == y).sum()
@@ -233,4 +235,4 @@ if __name__ == '__main__':
     print('Training Started')
     main.train()
 
-    # main.check_accuracy(main.loader_test, True, True)
+    main.check_accuracy(main.loader_test, True, True)

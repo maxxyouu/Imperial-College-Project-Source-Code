@@ -29,6 +29,7 @@ class Baseline_Model:
     
     def load_learned_weights(self, weight_pickle='model.pt'):
         self.model.load_state_dict(torch.load(weight_pickle, map_location=Constants.DEVICE))
+        self.model.to(Constants.DEVICE)
 
 class Pytorch_default_resNet(Baseline_Model):
     """default resnet model from pytorch

@@ -33,7 +33,7 @@ class Main:
 
         # a pytorch model
         self.model_wrapper = args['model']
-        self.model_name = _create_model_name(args['model_name'])
+        self.model_name = _create_model_name(args)
 
         # store the dataset
         self.training_data = args['train_data']
@@ -123,11 +123,9 @@ class Main:
     def train(self, model_weights_des=Constants.SAVED_MODEL_PATH):
         self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
 
-        opt_val_loss = np.inf
-        patience, optimal_epoch_val_loss = 5, np.inf
+        patience, optimal_val_loss = 5, np.inf
 
         for e in range(self.epochs):
-            epoch_val_acc, epoch_val_loss  = [], []
             for t, (x, y) in enumerate(self.loader_train):
                 self.optimizer.zero_grad()
 
@@ -146,31 +144,22 @@ class Main:
                 # Update the parameters of the model using the gradients
                 loss.backward()
                 self.optimizer.step()
-                
-                # log training process
-                val_acc, val_loss = self.check_accuracy(self.loader_val)
-                epoch_val_acc.append(val_acc)
-                epoch_val_loss.append(val_loss)
-                print('Epoch: {}, Iteration {}, Batch loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
-                # save the model if the validation loss is improved
-                # NOTE: instead of based on validation acc as i think val_loss is a better metrics (more fine grain)
-                if val_loss < opt_val_loss:
-                    print('Saving model')
-                    # update the current optimal validation acc
-                    opt_val_loss = val_loss
-                    # save the model to destination
-                    model_dest = os.path.join(model_weights_des, '{}.pt'.format(self.model_name))
-                    torch.save(self.model_wrapper.model.state_dict(), model_dest)
+                # TODO: might need to save the training loss for ploting using t in the x axis
 
-            # average epoch acc
-            epoch_acc = sum(epoch_val_acc)/len(epoch_val_acc)
-            epoch_val_loss = sum(epoch_val_loss)/len(epoch_val_loss)
-            print('Epoch {} validation acc: {} validation loss: {}'.format(e, epoch_acc, epoch_val_loss))
+            # evaluate the validation dataset after every epoch
+            val_acc, val_loss = self.check_accuracy(self.loader_val)
+            print('Epoch: {}, Validation Loss {}, val_acc {}'.format(e, val_loss, val_acc))
 
-            if optimal_epoch_val_loss > epoch_val_loss:
-                 optimal_epoch_val_loss = epoch_val_loss
-                 patience = self.earlyStopping_patience
+            if val_loss < optimal_val_loss:
+                print('Saving model')
+                # save the model to destination
+                model_dest = os.path.join(model_weights_des, '{}.pt'.format(self.model_name))
+                torch.save(self.model_wrapper.model.state_dict(), model_dest)
+
+                # udpate the tracking parameters
+                optimal_val_loss = val_loss
+                patience = self.earlyStopping_patience
             else:
                 patience -= 1
 

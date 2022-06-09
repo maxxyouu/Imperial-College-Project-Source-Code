@@ -36,10 +36,10 @@ def extract_args():
                             type=int, default=256,
                             help='batch size to be used for training / testing')             
     my_parser.add_argument('--epochs',
-                            type=int, default=30,
+                            type=int, default=100,
                             help='training epochs')   
     my_parser.add_argument('--earlyStoppingPatience',
-                            type=int, default=5,
+                            type=int, default=10,
                             help='early stopping patience to terminate the training process')   
     my_parser.add_argument('--learningRate',
                             type=float, default=0.001,

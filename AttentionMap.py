@@ -15,6 +15,10 @@ from Helper import switch_cam
 from BaselineModel import Pytorch_default_resNet
 import Constants
 
+class CAM_Generator:
+    def __init__(self, model_name, data) -> None:
+        pass
+
 if __name__ == '__main__':
 
     model_name = 'resnet18'
@@ -33,9 +37,9 @@ if __name__ == '__main__':
 
     # for each image, it has a folder that store all the cam heatmaps
     dataloader = DataLoader(data, batch_size=len(data))
-    cams = ['xgradcam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
- 
     x, _ = next(iter(dataloader))
+
+    cams = ['xgradcam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     for cam_name in cams:
         # make sure the cam is freed after used
         # NOTE: otherwise, odd results will be formed
@@ -65,30 +69,3 @@ if __name__ == '__main__':
                 attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
                 masked_img = Image.fromarray(attention_map, 'RGB')
                 masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
-
-
-    # create directory for each image if not exists in directory eg. ./heatmaps/resnet/image-0/original.jpg
-    # x, _ = next(iter(dataloader))
-    # cam = GradCAM(model=resnet18.model, target_layers=[resnet18_target_layer], use_cuda=True if Constants.WORK_ENV == 'COLAB' else False)
-    # grayscale_cam = cam(input_tensor=x, targets=None)
-    # # denormalize after forward passing
-    # x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
-
-    # dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_name, 'image-{}'.format(0))
-    # if not os.path.exists(dest):
-    #     os.makedirs(dest)
-    # # save the original image
-    # torchvision.utils.save_image(x[0, :], os.path.join(dest, 'original.jpg'))
-
-    # # swap the axis so that the show_cam_on_image works
-    # img = x[0, :].cpu().detach().numpy()
-    # img = np.swapaxes(img, 0, 2)
-    # img = np.swapaxes(img, 0, 1)
-
-    # # save the overlayed-attention map with the cam name as a tag
-    # attention_map = show_cam_on_image(img, grayscale_cam[0, :], use_rgb=True)
-    # masked_img = Image.fromarray(attention_map, 'RGB')
-    # # masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
-    # masked_img.save(os.path.join(dest, 'grad-cam.jpg'))
-
-

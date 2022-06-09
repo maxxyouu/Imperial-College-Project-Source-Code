@@ -117,7 +117,7 @@ class Main:
         acc = float(num_correct) / num_samples    
         return float(acc), sum(losses)/len(losses)
         
-    def train(self, model_weights_des='../'):
+    def train(self, model_weights_des=Constants.SAVED_MODEL_PATH):
         self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
 
         opt_val_loss = np.inf
@@ -151,6 +151,7 @@ class Main:
                 print('Epoch: {}, Iteration {}, Batch loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
                 # save the model if the validation loss is improved
+                # NOTE: instead of based on validation acc as i think val_loss is a better metrics (more fine grain)
                 if val_loss < opt_val_loss:
                     print('Saving model')
                     # update the current optimal validation acc

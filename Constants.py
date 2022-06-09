@@ -13,9 +13,11 @@ if USE_GPU and torch.cuda.is_available():
 WORK_ENV = 'LOCAL'
 DATA_PARENT_PATH = '../'
 STORAGE_PATH = './'
+SAVED_MODEL_PATH = './trained_models'
 if WORK_ENV == 'COLAB':
     DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
     STORAGE_PATH = '/content/drive/MyDrive/'
+    SAVED_MODEL_PATH = '../'
 
 DATA_MEAN = 0.1496
 DATA_STD = 0.1960

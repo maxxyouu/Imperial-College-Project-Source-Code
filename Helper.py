@@ -47,6 +47,9 @@ def extract_args():
     my_parser.add_argument('--augNoise',
                             type=bool, default=False,
                             help='add noise during traning')   
+    my_parser.add_argument('--train',
+                            type=bool, default=True,
+                            help='whether execute the script in training or eval mode')   
 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
@@ -75,3 +78,12 @@ def switch_cam(cam, model, target_layers):
         return LayerCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
     else:
         print('NO SUCH CAM EXISTS')
+
+def main_executation(main, train=True):
+
+    if train:
+        print('Training Started')
+        main.train()
+    else: # eval mode
+        print('Testing Started')
+        main.check_accuracy(main.loader_test, True, True, True)

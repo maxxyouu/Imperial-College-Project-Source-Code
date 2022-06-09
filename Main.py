@@ -11,7 +11,7 @@ import numpy as np
 # local file import
 from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
-from Helper import extract_args
+from Helper import extract_args, main_executation
 import Constants
 from Helper import denorm
 
@@ -239,9 +239,6 @@ if __name__ == '__main__':
         'augNoise': args.augNoise,
         'pretrain': args.pretrain
     }
+
     main = Main(params)
-    # print('Training Started')
-    # main.train()
-    
-    print('Testing Started')
-    main.check_accuracy(main.loader_test, True, True, True)
+    main_executation(args.train, main)

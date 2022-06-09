@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     data = datasets.ImageFolder('./correct_preds', transform=transforms.Compose(
         [
-            transforms.ToTensor(),
+            transforms.ToTensor(), # no need for the centercrop as it is at the correct size
             transforms.Normalize(
                 [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
                 [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])

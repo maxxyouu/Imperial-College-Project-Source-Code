@@ -16,8 +16,52 @@ from BaselineModel import Pytorch_default_resNet
 import Constants
 
 class CAM_Generator:
-    def __init__(self, model_name, data) -> None:
+    def __init__(self, model_name, data, cams) -> None:
+        self.cams = cams
+        self.model_name = model_name
         pass
+    
+    def create_heatmap_dest(self, i, feature):
+        dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', self.model_name, 'image-{}'.format(i))
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+            # save the original image
+            torchvision.utils.save_image(feature, os.path.join(dest, 'original.jpg')) 
+
+    def create_heat_mask_and_save(self, dest, img, feature_mask, cam_name):
+        attention_map = show_cam_on_image(img, feature_mask, use_rgb=True)
+        masked_img = Image.fromarray(attention_map, 'RGB')
+        masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
+
+    def generate_cam(self):
+        for cam_name in self.cams:
+            # make sure the cam is freed after used
+            # NOTE: otherwise, odd results will be formed
+            with switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) as cam: 
+                print('--------- Forward Passing {}'.format(cam_name))
+                grayscale_cam = cam(input_tensor=x, targets=None)
+                
+                # denormalize the image NOTE: must be placed after forward passing
+                # x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
+                x = denorm(x)
+                
+                print('--------- Generating CAM')
+                # for each image in a batch
+                for i in range(x.shape[0]):
+                    # create directory this image-i if needed
+                    self.create_heatmap_dest(i, x[i, :])
+
+                    # swap the axis so that the show_cam_on_image works NOTE: otherwise wont work
+                    img = x[i, :].cpu().detach().numpy()
+                    img = np.swapaxes(img, 0, 2)
+                    img = np.swapaxes(img, 0, 1)
+
+                    # save the overlayed-attention map with the cam name as a tag
+                    self.create_heat_mask_and_save(dest, img, grayscale_cam[i, :], cam_name)
+                    # attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
+                    # masked_img = Image.fromarray(attention_map, 'RGB')
+                    # masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
+        
 
 if __name__ == '__main__':
 

@@ -43,7 +43,10 @@ def extract_args():
                             help='early stopping patience to terminate the training process')   
     my_parser.add_argument('--learningRate',
                             type=float, default=0.001,
-                            help='learning rate for training')   
+                            help='learning rate for training') 
+    my_parser.add_argument('--augNoise',
+                            type=bool, default=False,
+                            help='add noise during traning')   
 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              

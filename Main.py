@@ -6,8 +6,7 @@ import os
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import progressbar
-import PIL
+import numpy as np
 
 # local file import
 from CLEImageDataset import CLEImageDataset
@@ -24,10 +23,17 @@ print('Device being used: {}'.format(Constants.DEVICE))
 # main class responsible for training
 class Main:
     def __init__(self, args):
+        def _create_model_name(args):
+            name = args['model_name']
+            if args['augNoise']:
+                name += '_noise'
+            if args['pretrain']:
+                name += '_pretrain'
+            return name
 
         # a pytorch model
         self.model_wrapper = args['model']
-        self.model_name = args['model_name']
+        self.model_name = _create_model_name(args['model_name'])
 
         # store the dataset
         self.training_data = args['train_data']
@@ -46,6 +52,8 @@ class Main:
         # for early stopping
         self.earlyStopping_patience = args['patience']
         self.epochs = args['epochs']
+
+        self.addNoise = args['augNoise']
     
     def _extract_correct_preds_and_save(self, preds, y, features):
         """store the correctedly classified sample to the corresponding folder
@@ -85,7 +93,7 @@ class Main:
 
         num_correct = 0
         num_samples = 0
-        acc = 0
+        acc, losses = 0, []
 
         self.model_wrapper.model.eval()  # set model to evaluation mode
         with torch.no_grad():
@@ -97,6 +105,9 @@ class Main:
                 scores = self.model_wrapper.model(x)
                 _, preds = scores.max(1)
 
+                # record the loss
+                losses.append(self.loss(scores, y))
+
                 if store_sample:
                     self._extract_correct_preds_and_save(preds, y, x)
 
@@ -104,22 +115,23 @@ class Main:
                 num_samples += preds.size(0)
 
         acc = float(num_correct) / num_samples    
-        return float(acc)
+        return float(acc), sum(losses)/len(losses)
         
-    def train(self, print_every=5, model_weights_des='../'):
+    def train(self, model_weights_des='../'):
         self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
 
-        opt_val_acc = 0
-        patience, optimal_epoch_acc = 5, 0
+        opt_val_loss = np.inf
+        patience, optimal_epoch_val_loss = 5, np.inf
 
         for e in range(self.epochs):
-            epoch_val_acc  = []
-            for t, (x, y) in enumerate(progressbar.progressbar(self.loader_train)):
+            epoch_val_acc, epoch_val_loss  = [], []
+            for t, (x, y) in enumerate(self.loader_train):
                 self.optimizer.zero_grad()
 
                 # add gaussian noise
-                noise = torch.zeros(x.shape, dtype=Constants.DTYPE) + (0.1**0.5)*torch.randn(x.shape)
-                x += noise
+                if self.addNoise:
+                    noise = torch.zeros(x.shape, dtype=Constants.DTYPE) + (0.1**0.5)*torch.randn(x.shape)
+                    x += noise
 
                 self.model_wrapper.model.train()  # put model to training mode
                 x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device, e.g. GPU
@@ -133,27 +145,27 @@ class Main:
                 self.optimizer.step()
                 
                 # log training process
-                val_acc = self.check_accuracy(self.loader_val)
+                val_acc, val_loss = self.check_accuracy(self.loader_val)
                 epoch_val_acc.append(val_acc)
-                if t % print_every == 0:
-                    print('\n Epoch: {}, Iteration {}, loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
+                epoch_val_loss.append(val_loss)
+                print('Epoch: {}, Iteration {}, Batch loss {}, val_acc {}'.format(e, t, loss.item(), val_acc))
 
-                # save the model if it is currently the optimal
-                if val_acc > opt_val_acc:
-                    print('\n Saving model')
+                # save the model if the validation loss is improved
+                if val_loss < opt_val_loss:
+                    print('Saving model')
                     # update the current optimal validation acc
-                    opt_val_acc = val_acc
-
+                    opt_val_loss = val_loss
                     # save the model to destination
                     model_dest = os.path.join(model_weights_des, '{}.pt'.format(self.model_name))
                     torch.save(self.model_wrapper.model.state_dict(), model_dest)
 
             # average epoch acc
             epoch_acc = sum(epoch_val_acc)/len(epoch_val_acc)
-            print('\n Epoch {} validation acc: {}'.format(e, epoch_acc))
+            epoch_val_loss = sum(epoch_val_loss)/len(epoch_val_loss)
+            print('Epoch {} validation acc: {} validation loss: {}'.format(e, epoch_acc, epoch_val_loss))
 
-            if optimal_epoch_acc < epoch_acc:
-                 optimal_epoch_acc = epoch_acc
+            if optimal_epoch_val_loss > epoch_val_loss:
+                 optimal_epoch_val_loss = epoch_val_loss
                  patience = self.earlyStopping_patience
             else:
                 patience -= 1
@@ -219,33 +231,13 @@ if __name__ == '__main__':
         'loss': nn.CrossEntropyLoss(),
         'model_name': args.model,
         'patience': args.earlyStoppingPatience,
-        'epochs': args.epochs
+        'epochs': args.epochs,
+        'augNoise': args.augNoise,
+        'pretrain': args.pretrain
     }
     
     main = Main(params)
     print('Training Started')
-    # main.train(20)
+    main.train()
 
-    main.check_accuracy(main.loader_test, True, True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ## find the mean and variance
-    # all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
-    # all_data_loader = DataLoader(all_data, batch_size=100, shuffle=True)
-    # mus, stds = mu_std(all_data_loader)
-    # print(mus)
-    # print(stds)
-
+    # main.check_accuracy(main.loader_test, True, True)

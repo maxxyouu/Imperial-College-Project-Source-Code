@@ -2,6 +2,8 @@ import torch
 import argparse
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
 from Constants import WORK_ENV
+import Constants
+
 def mu_std(data_loader):
     count = 0
     mean, var = 0, 0
@@ -47,6 +49,8 @@ def extract_args():
     args = my_parser.parse_args()                                              
     return args
 
+def denorm(tensor):
+    return tensor.mul(Constants.DATA_STD).add(Constants.DATA_MEAN)
 
 # 'gradcam', 'gradcam++', 'scorecam', 'ablationcam', 'xgradcam', 'eigencam', 'fullgradcam']
 def switch_cam(cam, model, target_layers):

@@ -14,6 +14,7 @@ from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
 from Helper import extract_args
 import Constants
+from Helper import denorm
 
 # set the seed for reproducibility
 rng_seed = 99
@@ -55,7 +56,7 @@ class Main:
             features (_type_): 4d tensor
         """
         # denorm the features
-        features = features.mul(Constants.DATA_STD).add(Constants.DATA_MEAN)
+        features = denorm(features)
 
         correct_classifications = (preds == y)
         

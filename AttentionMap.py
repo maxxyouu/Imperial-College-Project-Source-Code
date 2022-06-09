@@ -9,7 +9,7 @@ import os
 import torchvision
 from PIL import Image
 
-from Helper import switch_cam
+from Helper import denorm, switch_cam
 
 # local imports
 from BaselineModel import Pytorch_default_resNet
@@ -44,13 +44,14 @@ if __name__ == '__main__':
         # make sure the cam is freed after used
         # NOTE: otherwise, odd results will be formed
         with switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) as cam: 
-        # cam = switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) 
             print('--------- Forward Passing {}'.format(cam_name))
             grayscale_cam = cam(input_tensor=x, targets=None)
             
             # denormalize the image NOTE: must be placed after forward passing
-            x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
+            # x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
+            x = denorm(x)
             
+            print('--------- Generating CAM')
             # for each image in a batch
             for i in range(x.shape[0]):
                 # create directory this image-i if needed

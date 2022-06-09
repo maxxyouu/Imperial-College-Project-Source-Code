@@ -153,7 +153,7 @@ class Main:
             print('\n Epoch {} validation acc: {}'.format(e, epoch_acc))
 
             if optimal_epoch_acc < epoch_acc:
-                 epoch_acc = optimal_epoch_acc
+                 optimal_epoch_acc = epoch_acc
                  patience = self.earlyStopping_patience
             else:
                 patience -= 1

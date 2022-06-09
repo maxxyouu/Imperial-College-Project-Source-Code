@@ -16,11 +16,16 @@ from BaselineModel import Pytorch_default_resNet
 import Constants
 
 class CAM_Generator:
-    def __init__(self, model_name, data, cams) -> None:
+    def __init__(self, model_name, model_wrapper, target_layers, data, cams) -> None:
         self.cams = cams
         self.model_name = model_name
-        pass
-    
+        self.model_wrapper = model_wrapper
+        self.model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+        self.target_layers = target_layers
+        # make sure the self.x contains al lthe data within target_layers
+        dataloader = DataLoader(data, batch_size=len(data))
+        self.x, _ = next(iter(dataloader))
+
     def create_heatmap_dest(self, i, feature):
         dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', self.model_name, 'image-{}'.format(i))
         if not os.path.exists(dest):
@@ -34,6 +39,7 @@ class CAM_Generator:
         masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
 
     def generate_cam(self):
+        # for each image, it has a folder that store all the cam heatmaps
         for cam_name in self.cams:
             # make sure the cam is freed after used
             # NOTE: otherwise, odd results will be formed

@@ -175,12 +175,21 @@ if __name__ == '__main__':
     # extract argument from users
     args = extract_args()
 
-    transforms = transforms.Compose([
+    train_transforms = transforms.Compose([
         transforms.ToTensor(), 
         # transforms.Grayscale(1),
         transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
         transforms.RandomHorizontalFlip(),
         transforms.RandomRotation((0, 270)),
+        transforms.Normalize(
+            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
+        )
+    ])
+
+    test_transforms = transforms.Compose([
+        transforms.ToTensor(), 
+        transforms.CenterCrop(230),
         transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
@@ -205,9 +214,9 @@ if __name__ == '__main__':
         val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
         test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
 
-    train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=transforms)
-    val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=transforms)
-    test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=transforms)
+    train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=train_transforms)
+    val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=train_transforms)
+    test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=test_transforms)
 
     train_dataloader = DataLoader(train, batch_size=args.batchSize, shuffle=True)
     val_dataloader = DataLoader(val, batch_size=args.batchSize, shuffle=True)
@@ -230,9 +239,9 @@ if __name__ == '__main__':
         'augNoise': args.augNoise,
         'pretrain': args.pretrain
     }
-    
     main = Main(params)
-    print('Training Started')
-    main.train()
-
-    main.check_accuracy(main.loader_test, True, True)
+    # print('Training Started')
+    # main.train()
+    
+    print('Testing Started')
+    main.check_accuracy(main.loader_test, True, True, True)

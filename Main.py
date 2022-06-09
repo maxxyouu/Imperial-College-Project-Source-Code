@@ -84,7 +84,7 @@ class Main:
         for i, (_, label) in enumerate(zip(correct_pred_samples, correct_classified_labels)):
             torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, '{}-label{}.jpg'.format(i, label)))
 
-    def check_accuracy(self, loader, best_model=False, store_sample=False):
+    def check_accuracy(self, loader, best_model=False, store_sample=False, _print=False):
         # function for test accuracy on validation and test set
         
         if best_model:
@@ -114,7 +114,10 @@ class Main:
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
 
-        acc = float(num_correct) / num_samples    
+        acc = float(num_correct) / num_samples
+
+        if _print:
+            print('Accuracy: {}'.format(acc))
         return float(acc), sum(losses)/len(losses)
         
     def train(self, model_weights_des=Constants.SAVED_MODEL_PATH):

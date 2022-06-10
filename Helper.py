@@ -98,7 +98,9 @@ def data_transformations():
         # transforms.Grayscale(1),
         transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
         transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip()
         transforms.RandomRotation((0, 270)),
+        transforms.RandomAutocontrast(0.25),
         transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]

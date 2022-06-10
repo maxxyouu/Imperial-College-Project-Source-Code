@@ -12,7 +12,7 @@ from PIL import Image
 from Helper import denorm, switch_cam
 
 # local imports
-from BaselineModel import Pytorch_default_resNet, Pytorch_default_skres, Pytorch_default_skresnext
+from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 import Constants
 
 class CAM_Generator:
@@ -83,10 +83,22 @@ if __name__ == '__main__':
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [ model_wrapper.model.layer4[-1]]
 
-    model_name = 'skresnext50_32x4d_pretrain'
-    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    model_target_layer = [model_wrapper.model.layer4[-1]]
+    # model_name = 'resnext50_32x4d_pretrain'
+    # model_wrapper = Pytorch_default_resnext(model_name='resnext50_32x4d')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.layer4[-1]]
+
+    # model_name = 'skresnext50_32x4d_pretrain'
+    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.layer4[-1]]
+
+    # NOTE: to load the pretrain model, the base model must come from the the pytorch NOT timm
+    # model_name = 'vgg11_bn_pretrain'
+    # model_wrapper = Pytorch_default_vgg(model_name='vgg11_bn')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.features[-1]]
+
 
     data = datasets.ImageFolder('./correct_preds', transform=transforms.Compose(
         [

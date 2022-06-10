@@ -9,8 +9,8 @@ class Baseline_Model:
     https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
     """
     def __init__(self, pretrain=False, model_name='resnet18') -> None:
-        # self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain)
-        self.model = timm.create_model(model_name, pretrained=pretrain)
+        self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain)
+        # self.model = timm.create_model(model_name, pretrained=pretrain)
         # modify the model that suit our task, ie: the output layer and etc
 
     def _custom_classifier(self):
@@ -47,8 +47,13 @@ class Pytorch_default_resNet(Baseline_Model):
 class Pytorch_default_vgg(Baseline_Model):
     def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='vgg11_bn') -> None:
         super().__init__(pretrain, model_name)
-
+        # NOTE: the implementation is different for both timm and pytorch 
         # modify the model to match our dataset with two class only
+
+        # for timmm
+        # self.model.head.fc = 
+
+        # for pytorch
         self.model.classifier[6] = nn.Linear(self.model.classifier[6].in_features, num_classes, device=device, dtype=dtype)
 
 class Pytorch_default_skres(Baseline_Model):
@@ -91,6 +96,6 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_resnext(dtype=Constants.DTYPE, device=Constants.DEVICE, model_name='skresnext50_32x4d')
+    net = Pytorch_default_vgg(dtype=Constants.DTYPE, device=Constants.DEVICE, model_name='vgg11')
     # net.view_model()
     print("hello")

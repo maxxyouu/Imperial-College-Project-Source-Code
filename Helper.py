@@ -1,6 +1,9 @@
 import torch
 import argparse
+from torchvision import transforms
+from torch.utils.data import DataLoader
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
+from CLEImageDataset import CLEImageDataset
 from Constants import WORK_ENV
 import Constants
 
@@ -87,3 +90,62 @@ def main_executation(main, train=True):
     else: # eval mode
         print('Testing Started')
         main.check_accuracy(main.loader_test, True, True, True)
+
+def data_transformations():
+    train_transforms = transforms.Compose([
+        transforms.ToTensor(), 
+        # transforms.Grayscale(1),
+        transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation((0, 270)),
+        transforms.Normalize(
+            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
+        )
+    ])
+
+    test_transforms = transforms.Compose([
+        transforms.ToTensor(), 
+        transforms.CenterCrop(230),
+        transforms.Normalize(
+            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
+        )
+    ])
+
+    return train_transforms, test_transforms
+
+def pytorch_dataset(batch_size, train_transforms, test_transforms):
+    if Constants.WORK_ENV == 'COLAB':
+        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
+
+        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+
+    else: # local
+        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
+        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
+        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
+
+        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
+
+    train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=train_transforms)
+    val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=train_transforms)
+    test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=test_transforms)
+
+    train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=batch_size, shuffle=True)
+
+    result = {
+        'train': [train, train_dataloader],
+        'val': [val, val_dataloader],
+        'test': [test, test_dataloader]
+    }
+
+    return result

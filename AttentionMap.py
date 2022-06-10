@@ -74,11 +74,11 @@ if __name__ == '__main__':
     model_name = 'resnet18'
     resnet18 = Pytorch_default_resNet(model_name=model_name)
     resnet18.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    resnet18_target_layer = resnet18.model.layer4[-1]
+    resnet18_target_layer = [resnet18.model.layer4[-1]]
 
     data = datasets.ImageFolder('./correct_preds', transform=transforms.Compose(
         [
-            transforms.ToTensor(), # no need for the centercrop as it is at the correct size
+            transforms.ToTensor(), # no need for the centercrop as it is at the cor
             transforms.Normalize(
                 [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
                 [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
@@ -86,14 +86,14 @@ if __name__ == '__main__':
     ))
 
     # for each image, it has a folder that store all the cam heatmaps
-    dataloader = DataLoader(data, batch_size=len(data))
+    dataloader = DataLoader(data, batch_size=32)
     x, _ = next(iter(dataloader))
 
-    cams = ['xgradcam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
+    cams = ['layercam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     for cam_name in cams:
         # make sure the cam is freed after used
         # NOTE: otherwise, odd results will be formed
-        with switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) as cam: 
+        with switch_cam(cam_name, resnet18.model, resnet18_target_layer) as cam: 
             print('--------- Forward Passing {}'.format(cam_name))
             grayscale_cam = cam(input_tensor=x, targets=None)
             

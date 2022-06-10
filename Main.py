@@ -1,3 +1,4 @@
+from progressbar import DataTransferBar
 import torch
 from torch import nn
 import torchvision
@@ -11,7 +12,7 @@ import numpy as np
 # local file import
 from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
-from Helper import extract_args, main_executation
+from Helper import extract_args, main_executation, data_transformations, pytorch_dataset
 import Constants
 from Helper import denorm
 
@@ -175,52 +176,12 @@ if __name__ == '__main__':
     # extract argument from users
     args = extract_args()
 
-    train_transforms = transforms.Compose([
-        transforms.ToTensor(), 
-        # transforms.Grayscale(1),
-        transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation((0, 270)),
-        transforms.Normalize(
-            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
-            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
-        )
-    ])
+    train_transforms, test_transforms = data_transformations()
 
-    test_transforms = transforms.Compose([
-        transforms.ToTensor(), 
-        transforms.CenterCrop(230),
-        transforms.Normalize(
-            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
-            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
-        )
-    ])
-
-    if Constants.WORK_ENV == 'COLAB':
-        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
-        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
-        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
-
-        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-
-    else: # local
-        train_datapath = '{}train'.format(Constants.DATA_PARENT_PATH)
-        val_datapath = '{}val'.format(Constants.DATA_PARENT_PATH)
-        test_datapath = '{}test'.format(Constants.DATA_PARENT_PATH)
-
-        train_annotationPath = '{}train_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-        val_annotationPath = '{}val_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-        test_annotationPath = '{}test_annotations.csv'.format(Constants.DATA_PARENT_PATH)
-
-    train = CLEImageDataset(train_datapath, annotations_file=train_annotationPath, transform=train_transforms)
-    val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=train_transforms)
-    test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=test_transforms)
-
-    train_dataloader = DataLoader(train, batch_size=args.batchSize, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=args.batchSize, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=args.batchSize, shuffle=True)
+    data_dict = pytorch_dataset(args.batchSize, train_transforms, test_transforms)
+    train, train_dataloader = data_dict['train']
+    val, val_dataloader = data_dict['val']
+    test, test_dataloader = data_dict['test']
 
     model_wrapper = Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=args.model, pretrain=args.pretrain)
     params = {
@@ -241,4 +202,6 @@ if __name__ == '__main__':
     }
 
     main = Main(params)
+
+    # decide the execution mode
     main_executation(args.train, main)

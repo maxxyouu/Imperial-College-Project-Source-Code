@@ -78,6 +78,11 @@ if __name__ == '__main__':
     # model.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [resnet18.model.layer4[-1]]
 
+    model_name = 'resnet18_pretrain'
+    model_wrapper = Pytorch_default_resNet(model_name='resnet18')
+    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    model_target_layer = [model_wrapper.model.layer4[-1]]
+
     # model_name = 'skresnet18'
     # model_wrapper = Pytorch_default_skres(model_name=model_name)
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
@@ -88,10 +93,15 @@ if __name__ == '__main__':
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [model_wrapper.model.layer4[-1]]
 
-    model_name = 'skresnext50_32x4d_pretrain'
-    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    model_target_layer = [model_wrapper.model.layer4[-1]]
+    # model_name = 'skresnext50_32x4d_pretrain'
+    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.layer4[-1]]
+
+    # model_name = 'skresnext50_32x4d'
+    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.layer4[-1]]
 
     # NOTE: to load the pretrain model, the base model must come from the the pytorch NOT timm
     # model_name = 'vgg11_bn_pretrain'

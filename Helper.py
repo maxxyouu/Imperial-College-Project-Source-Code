@@ -141,9 +141,9 @@ def pytorch_dataset(batch_size, train_transforms, test_transforms):
     val = CLEImageDataset(val_datapath, annotations_file=val_annotationPath, transform=train_transforms)
     test = CLEImageDataset(test_datapath, annotations_file=test_annotationPath, transform=test_transforms)
 
-    train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=batch_size, shuffle=True)
+    train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers= 2 if Constants.WORK_ENV == 'COLAB' else 0)
+    val_dataloader = DataLoader(val, batch_size=batch_size, shuffle=True, num_workers= 2 if Constants.WORK_ENV == 'COLAB' else 0)
+    test_dataloader = DataLoader(test, batch_size=batch_size, shuffle=True, num_workers= 2 if Constants.WORK_ENV == 'COLAB' else 0)
 
     result = {
         'train': [train, train_dataloader],

@@ -93,19 +93,19 @@ def main_executation(main, train=True):
         main.check_accuracy(main.loader_test, True, True, True)
 
 def data_transformations():
-    train_transforms = transforms.Compose([
-        transforms.ToTensor(), 
-        # transforms.Grayscale(1),
-        transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip()
-        transforms.RandomRotation((0, 270)),
-        transforms.RandomAutocontrast(0.25),
-        transforms.Normalize(
+    train_transforms = transforms.Compose(
+        [
+            transforms.ToTensor(), 
+            transforms.CenterCrop(230), # transforms.CenterCrop((336, 350)), 230 is the number that has the largest square in a circle
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation((0, 270)),
+            transforms.RandomAutocontrast(0.25),
+            transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
-            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD]
-        )
-    ])
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
+        ]
+    )
 
     test_transforms = transforms.Compose([
         transforms.ToTensor(), 

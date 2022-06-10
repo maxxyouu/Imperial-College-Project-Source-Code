@@ -12,7 +12,7 @@ import numpy as np
 # local file import
 from CLEImageDataset import CLEImageDataset
 from BaselineModel import Pytorch_default_resNet
-from Helper import extract_args, main_executation, data_transformations, pytorch_dataset
+from Helper import extract_args, main_executation, data_transformations, pytorch_dataset, switch_model
 import Constants
 from Helper import denorm
 
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     val, val_dataloader = data_dict['val']
     test, test_dataloader = data_dict['test']
 
-    model_wrapper = Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=args.model, pretrain=args.pretrain)
+    model_wrapper = switch_model(args.model, args.pretrain)
     params = {
         'train_data': train,
         'loader_train': train_dataloader,

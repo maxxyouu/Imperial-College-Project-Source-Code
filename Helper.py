@@ -3,6 +3,7 @@ import argparse
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
+from BaselineModel import Pytorch_default_resNet, Pytorch_default_skres, Pytorch_default_vgg
 from CLEImageDataset import CLEImageDataset
 from Constants import WORK_ENV
 import Constants
@@ -149,3 +150,12 @@ def pytorch_dataset(batch_size, train_transforms, test_transforms):
     }
 
     return result
+
+
+def switch_model(model_name, pretrain):
+    if 'resnet' in model_name:
+        return Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+    if 'vgg' in model_name:
+        return Pytorch_default_vgg(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+    if 'skresnet' in model_name:
+        return Pytorch_default_skres(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)

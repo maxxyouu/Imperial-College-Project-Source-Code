@@ -4,7 +4,7 @@ import argparse
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
-from BaselineModel import Pytorch_default_resNet, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
+from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 from CLEImageDataset import CLEImageDataset
 from Constants import WORK_ENV
 import Constants
@@ -164,3 +164,6 @@ def switch_model(model_name, pretrain):
         return Pytorch_default_skres(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
     if 'skresnext' in model_name:
         return Pytorch_default_skresnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+    if 'resnext' in model_name:
+        return Pytorch_default_resnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+    print('NO MATCHED MODEL')

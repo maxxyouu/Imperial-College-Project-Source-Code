@@ -12,7 +12,7 @@ from PIL import Image
 from Helper import denorm, switch_cam
 
 # local imports
-from BaselineModel import Pytorch_default_resNet, Pytorch_default_skres
+from BaselineModel import Pytorch_default_resNet, Pytorch_default_skres, Pytorch_default_skresnext
 import Constants
 
 class CAM_Generator:
@@ -73,13 +73,18 @@ if __name__ == '__main__':
 
     smoothing = False
     
-    model_name = 'resnet18'
+    # model_name = 'resnet18'
     # model_wrapper = Pytorch_default_resNet(model_name=model_name)
     # model.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [resnet18.model.layer4[-1]]
 
-    model_name = 'skresnet18'
-    model_wrapper = Pytorch_default_skres(model_name=model_name)
+    # model_name = 'skresnet18'
+    # model_wrapper = Pytorch_default_skres(model_name=model_name)
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [ model_wrapper.model.layer4[-1]]
+
+    model_name = 'skresnext50_32x4d_pretrain'
+    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
     model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     model_target_layer = [model_wrapper.model.layer4[-1]]
 
@@ -96,7 +101,7 @@ if __name__ == '__main__':
     dataloader = DataLoader(data, batch_size=32)
     x, _ = next(iter(dataloader))
 
-    cams = ['gradcam++'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
+    cams = ['xgradcam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     for cam_name in cams:
         # make sure the cam is freed after used
         # NOTE: otherwise, odd results will be formed

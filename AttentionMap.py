@@ -71,7 +71,7 @@ class CAM_Generator:
 
 if __name__ == '__main__':
 
-    smoothing = False
+    smoothing = True
     
     # model_name = 'resnet18'
     # model_wrapper = Pytorch_default_resNet(model_name=model_name)
@@ -88,10 +88,10 @@ if __name__ == '__main__':
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [model_wrapper.model.layer4[-1]]
 
-    # model_name = 'skresnext50_32x4d_pretrain'
-    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.layer4[-1]]
+    model_name = 'skresnext50_32x4d_pretrain'
+    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
+    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    model_target_layer = [model_wrapper.model.layer4[-1]]
 
     # NOTE: to load the pretrain model, the base model must come from the the pytorch NOT timm
     # model_name = 'vgg11_bn_pretrain'
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [model_wrapper.model.features[-1]]
 
-
+    model_dir_name = model_name + '_noSmooth' if not smoothing  else model_name
     data = datasets.ImageFolder('./correct_preds', transform=transforms.Compose(
         [
             transforms.ToTensor(), # no need for the centercrop as it is at the cor
@@ -113,13 +113,13 @@ if __name__ == '__main__':
     dataloader = DataLoader(data, batch_size=32)
     x, _ = next(iter(dataloader))
 
-    cams = ['xgradcam'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
+    cams = ['gradcam++'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     for cam_name in cams:
         # make sure the cam is freed after used
         # NOTE: otherwise, odd results will be formed
         with switch_cam(cam_name, model_wrapper.model, model_target_layer) as cam: 
             print('--------- Forward Passing {}'.format(cam_name))
-            grayscale_cam = cam(input_tensor=x, targets=None, aug_smooth=True)
+            grayscale_cam = cam(input_tensor=x, targets=None, aug_smooth=smoothing)
             
             # denormalize the image NOTE: must be placed after forward passing
             x = denorm(x)
@@ -128,7 +128,7 @@ if __name__ == '__main__':
             # for each image in a batch
             for i in range(x.shape[0]):
                 # create directory this image-i if needed
-                dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_name, 'image-{}'.format(i))
+                dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, 'image-{}'.format(i))
                 if not os.path.exists(dest):
                     os.makedirs(dest)
                     # save the original image

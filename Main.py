@@ -202,6 +202,9 @@ if __name__ == '__main__':
     }
 
     main = Main(params)
-
+    
+    # print the number of parameters
+    print('Number of parameters: {}'.format(model_wrapper.model_size()))
+    
     # decide the execution mode
-    main_executation(args.train, main)
+    main_executation(main, args.train)

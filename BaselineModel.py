@@ -63,7 +63,7 @@ class Pytorch_default_skres(Baseline_Model):
         Baseline_Model (_type_): _description_
     """
 
-    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnet18') -> None:
+    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnet50') -> None:
         super().__init__(pretrain, model_name)
         self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
         
@@ -86,7 +86,7 @@ class Pytorch_default_skresnext(Baseline_Model):
         Baseline_Model (_type_): _description_
     """
 
-    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnet18') -> None:
+    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnext50_32x4d') -> None:
         super().__init__(pretrain, model_name)
         self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
 
@@ -94,6 +94,6 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_skres(dtype=Constants.DTYPE, device=Constants.DEVICE)
+    net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE)
     # net.view_model()
     print("hello")

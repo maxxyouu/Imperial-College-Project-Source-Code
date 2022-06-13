@@ -1,17 +1,11 @@
-from progressbar import DataTransferBar
 import torch
 from torch import nn
 import torchvision
-import torch.nn.functional as F
 import os
 import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import transforms
 import numpy as np
 
 # local file import
-from CLEImageDataset import CLEImageDataset
-from BaselineModel import Pytorch_default_resNet
 from Helper import extract_args, main_executation, data_transformations, pytorch_dataset, switch_model
 import Constants
 from Helper import denorm

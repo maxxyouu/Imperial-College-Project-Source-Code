@@ -78,10 +78,10 @@ if __name__ == '__main__':
     # model.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [resnet18.model.layer4[-1]]
 
-    model_name = 'resnet18_pretrain'
-    model_wrapper = Pytorch_default_resNet(model_name='resnet18')
-    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    model_target_layer = [model_wrapper.model.layer4[-1]]
+    # model_name = 'resnet18_pretrain'
+    # model_wrapper = Pytorch_default_resNet(model_name='resnet18')
+    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    # model_target_layer = [model_wrapper.model.layer4[-1]]
 
     # model_name = 'skresnet18'
     # model_wrapper = Pytorch_default_skres(model_name=model_name)
@@ -93,10 +93,10 @@ if __name__ == '__main__':
     # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
     # model_target_layer = [model_wrapper.model.layer4[-1]]
 
-    # model_name = 'skresnext50_32x4d_pretrain'
-    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.layer4[-1]]
+    model_name = 'skresnext50_32x4d_pretrain'
+    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
+    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
+    model_target_layer = [model_wrapper.model.layer4[-1]]
 
     # model_name = 'skresnext50_32x4d'
     # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     ))
 
     # for each image, it has a folder that store all the cam heatmaps
-    dataloader = DataLoader(data, batch_size=32)
+    dataloader = DataLoader(data, batch_size=48)
     x, _ = next(iter(dataloader))
 
     cams = ['gradcam++'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',

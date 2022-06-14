@@ -16,7 +16,7 @@ SAVED_MODEL_PATH = './trained_models'
 if WORK_ENV == 'COLAB':
     DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
     STORAGE_PATH = '/content/drive/MyDrive/'
-    SAVED_MODEL_PATH = '../'
+    SAVED_MODEL_PATH = '/content/drive/MyDrive/trained_models'
 
 DATA_MEAN = 0.1496
 DATA_STD = 0.1960

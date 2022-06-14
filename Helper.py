@@ -54,7 +54,7 @@ def extract_args():
                             type=bool, default=False,
                             help='add noise during traning')   
     my_parser.add_argument('--train',
-                            type=bool, default=True,
+                            type=bool, default=False,
                             help='whether execute the script in training or eval mode')   
 
     # Execute the parse_args() method
@@ -78,6 +78,9 @@ def extract_attention_cam_args():
     my_parser.add_argument('--cam',
                             type=str, default='xgradcam',
                             help='cam name for explanation') 
+    my_parser.add_argument('--batchSize',
+                            type=int, default=256,
+                            help='batch size to be used for training / testing')  
     # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     
     # Execute the parse_args() method
@@ -197,12 +200,13 @@ def switch_model(model_name, pretrain):
 def get_trained_model(model_name):
     # get actual model name without the _pretrain suffix
     _PRETRAIN = '_pretrain'
+    model_name_cleaned = model_name
     if _PRETRAIN in model_name:
         end = model_name.index(_PRETRAIN)
-        model_name = model_name[:end]
+        model_name_cleaned = model_name[:end]
     
-    model_wrapper = switch_model(model_name, False)
-    weight_pickle = os.path.join(Constants.STORAGE_PATH, 'trained_models/{}.pt'.format(model_name))
+    model_wrapper = switch_model(model_name_cleaned, False)
+    weight_pickle = os.path.join(Constants.SAVED_MODEL_PATH ,'{}.pt'.format(model_name))
     model_wrapper.load_learned_weights(weight_pickle)
     
     return model_wrapper

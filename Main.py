@@ -8,7 +8,7 @@ import numpy as np
 # local file import
 from Helper import extract_args, main_executation, data_transformations, pytorch_dataset, switch_model
 import Constants
-from Helper import denorm
+from Helper import denorm, get_trained_model
 
 # set the seed for reproducibility
 rng_seed = 99
@@ -69,14 +69,15 @@ class Main:
         correct_classified_labels = y[correct_classifications]
 
         # create directory the model's subdirectory if not exists
-        dest = os.path.join(Constants.STORAGE_PATH, 'correct_preds')
-        if not os.path.exists(dest):
-            os.mkdir(dest)
-        dest = os.path.join(dest, self.model_name)
-        if not os.path.exists(dest):
-            os.mkdir(dest)
+        dest_0 = os.path.join(Constants.STORAGE_PATH, 'correct_preds', self.model_name, '0')
+        dest_1 = os.path.join(Constants.STORAGE_PATH, 'correct_preds', self.model_name, '1')
+        if not os.path.exists(dest_0):
+            os.makedirs(dest_0)
+        if not os.path.exists(dest_1):
+            os.makedirs(dest_1)
 
         for i, (_, label) in enumerate(zip(correct_pred_samples, correct_classified_labels)):
+            dest = dest_1 if label.item() == 1 else dest_0
             torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, '{}-label{}.jpg'.format(i, label)))
 
     def check_accuracy(self, loader, best_model=False, store_sample=False, _print=False):
@@ -178,7 +179,11 @@ if __name__ == '__main__':
     val, val_dataloader = data_dict['val']
     test, test_dataloader = data_dict['test']
 
-    model_wrapper = switch_model(args.model, args.pretrain)
+    if args.train:
+        model_wrapper = switch_model(args.model, args.pretrain)
+    else:
+        model_wrapper = get_trained_model(args.model)
+
     params = {
         'train_data': train,
         'loader_train': train_dataloader,
@@ -202,4 +207,5 @@ if __name__ == '__main__':
     print('Number of parameters: {}'.format(model_wrapper.model_size()))
     
     # decide the execution mode
-    main_executation(main, args.train)
+    # main_executation(main, args.train)
+    main_executation(main, False)

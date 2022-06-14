@@ -44,9 +44,6 @@ def find_mutual_correct_images(dest_root):
     # root 
     root_path = os.path.join(Constants.STORAGE_PATH, 'correct_preds')
 
-    # model
-    model_preds = os.listdir(root_path)
-
     # correct class prediction for each model
     meingioma_dict = {}
     gbm_dict = {}

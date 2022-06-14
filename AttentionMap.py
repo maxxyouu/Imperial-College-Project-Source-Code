@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     model_dir_name = define_model_dir_path(args)
 
-    data_dir = os.path.join(Constants.STORAGE_PATH, 'correct_preds', args.model)
+    data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
     data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
         [
             transforms.ToTensor(), # no need for the centercrop as it is at the cor
@@ -115,9 +115,9 @@ if __name__ == '__main__':
                 [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
         ]
     ))
-
-    # # for each image, it has a folder that store all the cam heatmaps
-    dataloader = DataLoader(data, batch_size=args.batchSize, sampler=SequentialSampler) # TODO: check image 18
+    # for each image, it has a folder that store all the cam heatmaps
+    sequentialSampler = SequentialSampler(data)
+    dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
     image_order_book, img_index = data.imgs, 0
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
     for x, y in dataloader:

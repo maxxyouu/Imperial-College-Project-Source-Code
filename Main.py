@@ -50,7 +50,7 @@ class Main:
 
         self.addNoise = args['augNoise']
     
-    def _extract_correct_preds_and_save(self, preds, y, features):
+    def _extract_correct_preds_and_save(self, preds, y, features, names):
         """store the correctedly classified sample to the corresponding folder
 
         Args:
@@ -76,9 +76,9 @@ class Main:
         if not os.path.exists(dest_1):
             os.makedirs(dest_1)
 
-        for i, (_, label) in enumerate(zip(correct_pred_samples, correct_classified_labels)):
+        for i, (_, label, img_name) in enumerate(zip(correct_pred_samples, correct_classified_labels, names)):
             dest = dest_1 if label.item() == 1 else dest_0
-            torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, '{}-label{}.jpg'.format(i, label)))
+            torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, img_name))
 
     def check_accuracy(self, loader, best_model=False, store_sample=False, _print=False):
         # function for test accuracy on validation and test set
@@ -94,7 +94,7 @@ class Main:
 
         self.model_wrapper.model.eval()  # set model to evaluation mode
         with torch.no_grad():
-            for x, y in loader:
+            for x, y, names in loader:
 
                 x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device
                 y = y.to(device=Constants.DEVICE, dtype=torch.long)
@@ -107,7 +107,7 @@ class Main:
 
                 if store_sample:
                     print('Saving correctly classified images')
-                    self._extract_correct_preds_and_save(preds, y, x)
+                    self._extract_correct_preds_and_save(preds, y, x, names)
 
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
@@ -124,7 +124,7 @@ class Main:
         patience, optimal_val_loss = 5, np.inf
 
         for e in range(self.epochs):
-            for t, (x, y) in enumerate(self.loader_train):
+            for t, (x, y, name) in enumerate(self.loader_train):
                 self.optimizer.zero_grad()
 
                 # add gaussian noise

@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 import os
 import pandas as pd
 from PIL import Image
+from torchvision import transforms
+from torch.utils.data import DataLoader
 
 class CLEImageDataset(Dataset):
     def __init__(self, img_dir, annotations_file, transform=None, target_transform=None):
@@ -27,6 +29,7 @@ class CLEImageDataset(Dataset):
         
     def __getitem__(self, idx):
         # extract subdirectory
+        image_name = self.img_labels.iloc[idx, 0]
         img_path = self._get_image_path(idx)
 
         # read the image from the location
@@ -40,15 +43,15 @@ class CLEImageDataset(Dataset):
         if self.target_transform:
             label = self.target_transform(label)
 
-        return image, label
+        return image, label, image_name
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 #     # test if the custom dataset works
-#     all_data = CLEImageDataset('../cleanDistilledFrames', transform=transforms.Compose([transforms.ToTensor()]))
-#     train_dataloader = DataLoader(all_data, batch_size=3, shuffle=True)
-#     train_features, train_labels = next(iter(train_dataloader))
-#     print(f"Feature batch shape: {train_features.size()}")
-#     print(f"Labels batch shape: {train_labels.size()}")
+    all_data = CLEImageDataset('../cleanDistilledFrames', '../annotations.csv', transform=transforms.Compose([transforms.ToTensor()]))
+    train_dataloader = DataLoader(all_data, batch_size=3, shuffle=True)
+    train_features, train_labels = next(iter(train_dataloader))
+    print(f"Feature batch shape: {train_features.size()}")
+    print(f"Labels batch shape: {train_labels.size()}")
 
 
 # Iterate through dataloader to visualize

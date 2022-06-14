@@ -29,11 +29,18 @@ def define_model_dir_path(args):
         model_dir_name += '_noise{}_iters{}'.format(args.std, args.iterations)
     return model_dir_name
 
+# TODO: the following only valid for resnet 50 and resnext 50
+def target_layers(model, layer_nums):
+    result = []
+    for i in layer_nums:
+        result.append(getattr(model, 'layer'+'{}'.format(i))[-1])
+    return result
+
 if __name__ == '__main__':
     args = extract_attention_cam_args()
 
     model_wrapper = get_trained_model(args.model)
-    model_target_layer = [model_wrapper.model.layer3[-1], model_wrapper.model.layer4[-1]]
+    model_target_layer = target_layers(model_wrapper.model, args.layers)
 
     model_dir_name = define_model_dir_path(args)
 
@@ -49,9 +56,10 @@ if __name__ == '__main__':
 
     # for each image, it has a folder that store all the cam heatmaps
     dataloader = DataLoader(data, batch_size=args.batchSize) # TODO: check image 18
-    # x, _ = next(iter(dataloader))
+
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer) 
     for x, y in dataloader:
+        sample_name = ''
         print('--------- Forward Passing {}'.format(args.cam))
         x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         input_x = x
@@ -72,7 +80,7 @@ if __name__ == '__main__':
         # for each image in a batch
         for i in range(x.shape[0]):
             # create directory this image-i if needed that contains all the cam attention maps
-            dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', 'image-{}'.format(i))
+            dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name[i][:-4])
 
             # save the original image in parallel
             if not os.path.exists(dest):
@@ -88,5 +96,5 @@ if __name__ == '__main__':
             # save the overlayed-attention map with the cam name as a tag
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
             masked_img = Image.fromarray(attention_map, 'RGB')
-            img_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
-            masked_img.save(os.path.join(dest, img_name+'.jpg'))
+            cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
+            masked_img.save(os.path.join(dest, cam_name+'.jpg'))

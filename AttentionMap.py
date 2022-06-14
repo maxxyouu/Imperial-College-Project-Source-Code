@@ -128,7 +128,7 @@ if __name__ == '__main__':
         if args.noiseSmooth:
             grayscale_cam = torch.zeros((x.shape[0], x.shape[-1], x.shape[-1]),dtype=Constants.DTYPE)
             for t in range(args.iterations):
-                print('CAM Smoothing Iteration: {}'.format(t))
+                # print('CAM Smoothing Iteration: {}'.format(t))
                 input_x = add_noise(x, args.std)
                 grayscale_cam += cam(input_tensor=input_x, targets=None)
             grayscale_cam /= args.iterations
@@ -141,7 +141,7 @@ if __name__ == '__main__':
         print('--------- Generating CAM')
         # for each image in a batch
         for i in range(x.shape[0]):
-            sample_name = image_order_book[0][0].split('/')[-1] # get the image name from the dataset
+            sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
 
             # each image is a directory that contains all the experiment results
             dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name)

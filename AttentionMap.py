@@ -2,116 +2,43 @@ from torchvision import transforms, datasets
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from torch.utils.data import DataLoader
-from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
-
+# from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import numpy as np
 import os
 import torchvision
+import torch
 from PIL import Image
 
-from Helper import denorm, switch_cam
+from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model
 
 # local imports
 from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 import Constants
-
-class CAM_Generator:
-    def __init__(self, model_name, model_wrapper, target_layers, data, cams) -> None:
-        self.cams = cams
-        self.model_name = model_name
-        self.model_wrapper = model_wrapper
-        self.model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-        self.target_layers = target_layers
-        # make sure the self.x contains al lthe data within target_layers
-        dataloader = DataLoader(data, batch_size=len(data))
-        self.x, _ = next(iter(dataloader))
-
-    def create_heatmap_dest(self, i, feature):
-        dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', self.model_name, 'image-{}'.format(i))
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-            # save the original image
-            torchvision.utils.save_image(feature, os.path.join(dest, 'original.jpg')) 
-
-    def create_heat_mask_and_save(self, dest, img, feature_mask, cam_name):
-        attention_map = show_cam_on_image(img, feature_mask, use_rgb=True)
-        masked_img = Image.fromarray(attention_map, 'RGB')
-        masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
-
-    def generate_cam(self):
-        # for each image, it has a folder that store all the cam heatmaps
-        for cam_name in self.cams:
-            # make sure the cam is freed after used
-            # NOTE: otherwise, odd results will be formed
-            with switch_cam(cam_name, resnet18.model, [resnet18_target_layer]) as cam: 
-                print('--------- Forward Passing {}'.format(cam_name))
-                grayscale_cam = cam(input_tensor=x, targets=None)
-                
-                # denormalize the image NOTE: must be placed after forward passing
-                # x.mul_(Constants.DATA_STD).add_(Constants.DATA_MEAN)
-                x = denorm(x)
-                
-                print('--------- Generating CAM')
-                # for each image in a batch
-                for i in range(x.shape[0]):
-                    # create directory this image-i if needed
-                    self.create_heatmap_dest(i, x[i, :])
-
-                    # swap the axis so that the show_cam_on_image works NOTE: otherwise wont work
-                    img = x[i, :].cpu().detach().numpy()
-                    img = np.swapaxes(img, 0, 2)
-                    img = np.swapaxes(img, 0, 1)
-
-                    # save the overlayed-attention map with the cam name as a tag
-                    self.create_heat_mask_and_save(dest, img, grayscale_cam[i, :], cam_name)
-                    # attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
-                    # masked_img = Image.fromarray(attention_map, 'RGB')
-                    # masked_img.save(os.path.join(dest, '{}.jpg'.format(cam_name)))
         
+def add_noise(x, noise_level):
+    # noise = np.random.normal(0.0, scale=(noise_level / torch.max(x_reshaped, 1)[0] - torch.min(x_reshaped, 1)[0]))
+    # x_reshaped = torch.reshape(x, (x.shape[0], -1))
+    noise = np.random.normal(0.0, scale=noise_level)
+    noise = torch.tensor(noise, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    return x + noise
+
+def define_model_dir_path(args):
+    model_dir_name = args.model + '_noiseSmooth' if args.noiseSmooth else args.model
+    if args.noiseSmooth:
+        model_dir_name += '_noise{}_iters{}'.format(args.std, args.iterations)
+    return model_dir_name
 
 if __name__ == '__main__':
+    args = extract_attention_cam_args()
 
-    smoothing = True
-    
-    # model_name = 'resnet18'
-    # model_wrapper = Pytorch_default_resNet(model_name=model_name)
-    # model.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [resnet18.model.layer4[-1]]
+    model_wrapper = get_trained_model(args.model)
+    model_target_layer = [model_wrapper.model.layer3[-1], model_wrapper.model.layer4[-1]]
 
-    # model_name = 'resnet50_pretrain'
-    # model_wrapper = Pytorch_default_resNet(model_name='resnet50')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.layer2[-1], model_wrapper.model.layer3[-1], model_wrapper.model.layer4[-1]]
+    model_dir_name = define_model_dir_path(args)
 
-    # model_name = 'skresnet18'
-    # model_wrapper = Pytorch_default_skres(model_name=model_name)
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [ model_wrapper.model.layer4[-1]]
-
-    # model_name = 'resnext50_32x4d_pretrain'
-    # model_wrapper = Pytorch_default_resnext(model_name='resnext50_32x4d')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.layer4[-1]]
-
-    model_name = 'skresnext50_32x4d_pretrain'
-    model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    model_target_layer = [model_wrapper.model.layer2[-1],model_wrapper.model.layer3[-1], model_wrapper.model.layer4[-1]]
-    # model_target_layer = [model_wrapper.model.layer4[-1]]
-
-    # model_name = 'skresnext50_32x4d'
-    # model_wrapper = Pytorch_default_skresnext(model_name='skresnext50_32x4d')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.layer4[-1]]
-
-    # NOTE: to load the pretrain model, the base model must come from the the pytorch NOT timm
-    # model_name = 'vgg11_bn_pretrain'
-    # model_wrapper = Pytorch_default_vgg(model_name='vgg11_bn')
-    # model_wrapper.load_learned_weights('./trained_models/{}.pt'.format(model_name))
-    # model_target_layer = [model_wrapper.model.features[-1]]
-
-    model_dir_name = model_name + '_noSmooth' if not smoothing  else model_name
-    data = datasets.ImageFolder('./correct_preds', transform=transforms.Compose(
+    data_dir = os.path.join(Constants.STORAGE_PATH, 'correct_preds')
+    data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
         [
             transforms.ToTensor(), # no need for the centercrop as it is at the cor
             transforms.Normalize(
@@ -121,36 +48,42 @@ if __name__ == '__main__':
     ))
 
     # for each image, it has a folder that store all the cam heatmaps
-    dataloader = DataLoader(data, batch_size=32)
+    dataloader = DataLoader(data, batch_size=len(data)) # TODO: check image 18
     x, _ = next(iter(dataloader))
+    cam = switch_cam(args.cam, model_wrapper.model, model_target_layer) 
 
-    cams = ['gradcam++'] # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
-    for cam_name in cams:
-        # make sure the cam is freed after used
-        # NOTE: otherwise, odd results will be formed
-        with switch_cam(cam_name, model_wrapper.model, model_target_layer) as cam: 
-            print('--------- Forward Passing {}'.format(cam_name))
-            grayscale_cam = cam(input_tensor=x, targets=None, aug_smooth=smoothing)
-            
-            # denormalize the image NOTE: must be placed after forward passing
-            x = denorm(x)
-            
-            print('--------- Generating CAM')
-            # for each image in a batch
-            for i in range(x.shape[0]):
-                # create directory this image-i if needed
-                dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, 'image-{}'.format(i))
-                if not os.path.exists(dest):
-                    os.makedirs(dest)
-                    # save the original image
-                    torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
+    print('--------- Forward Passing {}'.format(args.cam))
+    input_x = x
+    if args.noiseSmooth:
+        grayscale_cam = torch.zeros((x.shape[0], x.shape[-1], x.shape[-1]), dtype=Constants.DTYPE)
+        for t in range(args.iterations):
+            print('CAM Smoothing Iteration: {}'.format(t))
+            input_x = add_noise(x, args.std)
+            grayscale_cam += cam(input_tensor=input_x, targets=None)
+        grayscale_cam /= args.iterations
+    else:
+        grayscale_cam = cam(input_tensor=input_x, targets=None)
+    
+    # denormalize the image NOTE: must be placed after forward passing
+    x = denorm(x)
+    
+    print('--------- Generating CAM')
+    # for each image in a batch
+    for i in range(x.shape[0]):
+        # create directory this image-i if needed
+        dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, 'image-{}'.format(i))
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+            # save the original image
+            torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
 
-                # swap the axis so that the show_cam_on_image works
-                img = x[i, :].cpu().detach().numpy()
-                img = np.swapaxes(img, 0, 2)
-                img = np.swapaxes(img, 0, 1)
+        # swap the axis so that the show_cam_on_image works
+        img = x[i, :].cpu().detach().numpy()
+        img = np.swapaxes(img, 0, 2)
+        img = np.swapaxes(img, 0, 1)
 
-                # save the overlayed-attention map with the cam name as a tag
-                attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
-                masked_img = Image.fromarray(attention_map, 'RGB')
-                masked_img.save(os.path.join(dest, '{}-{}layers.jpg'.format(cam_name, len(model_target_layer))))
+        # save the overlayed-attention map with the cam name as a tag
+        attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
+        masked_img = Image.fromarray(attention_map, 'RGB')
+        img_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
+        masked_img.save(os.path.join(dest, img_name+'.jpg'))

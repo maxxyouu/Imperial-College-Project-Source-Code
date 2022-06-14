@@ -128,7 +128,8 @@ class Main:
 
                 # add gaussian noise
                 if self.addNoise:
-                    noise = torch.zeros(x.shape, dtype=Constants.DTYPE) + (0.1**0.5)*torch.randn(x.shape)
+                    # refer to smoothgrad paper
+                    noise = torch.zeros(x.shape, dtype=Constants.DTYPE) + torch.randn(x.shape) / (torch.max(x) - torch.min(x))
                     x += noise
 
                 self.model_wrapper.model.train()  # put model to training mode

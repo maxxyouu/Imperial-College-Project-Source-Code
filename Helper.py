@@ -1,13 +1,14 @@
-from cv2 import FastFeatureDetector
 import torch
 import argparse
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
+# from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
 from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 from CLEImageDataset import CLEImageDataset
 from Constants import WORK_ENV
 import Constants
+import os
 
 def mu_std(data_loader):
     count = 0
@@ -59,6 +60,31 @@ def extract_args():
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
     return args
+
+def extract_attention_cam_args():
+    my_parser = argparse.ArgumentParser(description='')
+    my_parser.add_argument('--model',
+                            type=str, default='skresnext50_32x4d_pretrain',
+                            help='model to be used for training / testing') 
+    my_parser.add_argument('--noiseSmooth',
+                            type=bool, default=True,
+                            help='use noise for smoothing or not') 
+    my_parser.add_argument('--iterations',
+                            type=int, default=50,
+                            help='iteration for smoothing') 
+    my_parser.add_argument('--std',
+                            type=float, default=1.,
+                            help='noise level for smoothing') 
+    my_parser.add_argument('--cam',
+                            type=str, default='xgradcam',
+                            help='cam name for explanation') 
+    # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
+    
+    # Execute the parse_args() method
+    args = my_parser.parse_args()                                              
+    return args
+
+
 
 def denorm(tensor):
     return tensor.mul(Constants.DATA_STD).add(Constants.DATA_MEAN)
@@ -167,3 +193,17 @@ def switch_model(model_name, pretrain):
     if 'resnext' in model_name:
         return Pytorch_default_resnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
     print('NO MATCHED MODEL')
+
+def get_trained_model(model_name):
+    # get actual model name without the _pretrain suffix
+    _PRETRAIN = '_pretrain'
+    if _PRETRAIN in model_name:
+        end = model_name.index(_PRETRAIN)
+        model_name = model_name[:end]
+    
+    model_wrapper = switch_model(model_name, False)
+    weight_pickle = os.path.join(Constants.STORAGE_PATH, 'trained_models/{}.pt'.format(model_name))
+    model_wrapper.load_learned_weights(weight_pickle)
+    
+    return model_wrapper
+    

@@ -53,6 +53,7 @@ def scale_cam_image(cam, target_size=None):
     for img in cam:
         img = img - np.min(img)
         img = img / (1e-7 + np.max(img))
+        # img = (img - np.mean(img)) / np.std(img)
         if target_size is not None:
             img = cv2.resize(img, target_size)
         result.append(img)

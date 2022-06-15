@@ -37,7 +37,6 @@ def target_layers(model, layer_nums):
     return result
 
 
-
 if __name__ == '__main__':
 
     # get all mutual correct predictions
@@ -87,7 +86,7 @@ if __name__ == '__main__':
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)
         
-        print('--------- Generating CAM')
+        print('--------- Generating {} Heatmap'.format(args.cam))
         # for each image in a batch
         for i in range(x.shape[0]):
             sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset

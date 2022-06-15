@@ -98,6 +98,10 @@ if __name__ == '__main__':
     # need to manually modify the smooth parameters
     args = extract_attention_cam_args()
 
+    # print statement to verify the boolean arguments
+    print('Noise Smooth Arg: {}'.format(args.noiseSmooth))
+    print('Positive Target Arg: {}'.format(args.positiveTarget))
+
     model_wrapper = get_trained_model(args.model)
     model_target_layer = target_layers(model_wrapper.model, args.layers)
 

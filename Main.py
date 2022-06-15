@@ -172,6 +172,11 @@ if __name__ == '__main__':
     # extract argument from users
     args = extract_args()
 
+    # print statement to verify the bool arguments
+    print('Pretrain Arg: {}'.format(args.pretrain))
+    print('augNoise Arg: {}'.format(args.augNoise))
+    print('train Arg: {}'.format(args.train))
+
     train_transforms, test_transforms = data_transformations()
 
     data_dict = pytorch_dataset(args.batchSize, train_transforms, test_transforms)

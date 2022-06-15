@@ -217,3 +217,55 @@ def get_trained_model(model_name):
     
     return model_wrapper
     
+def find_mutual_correct_images(dest_root):
+    # root 
+    root_path = os.path.join(Constants.STORAGE_PATH, 'correct_preds')
+
+    # correct class prediction for each model
+    meingioma_dict = {}
+    gbm_dict = {}
+    files_path_dict = {}
+    for root, dirs, files in os.walk(root_path):
+        # reached the leaf nodes
+        if len(files) <= 0 or len(dirs) > 0:
+            continue
+
+        # use this to retrieve the file after intersection later on
+        for file in files:
+            files_path_dict[file] = os.path.join(root)
+
+        if root[-1] == '1':
+            meingioma_dict[root] = set(files)
+        elif root[-1] == '0':
+            gbm_dict[root] = set(files)
+
+    # find intersection of correct predictions
+    meingiomas = meingioma_dict.values()
+    mutual_correct_meingioma = set.intersection(*meingiomas)
+
+    gbms = gbm_dict.values()
+    mutual_correct_gbm = set.intersection(*gbms)
+
+    # create subdirectory if necessary
+    dest_0 = os.path.join(dest_root, '0')
+    dest_1 = os.path.join(dest_root, '1')
+    if not os.path.exists(dest_0):
+        os.makedirs(dest_0)
+    if not os.path.exists(dest_1):
+        os.makedirs(dest_1)
+
+
+    # move file to the desired destination
+    union_sets = mutual_correct_meingioma | mutual_correct_gbm
+    for file in union_sets:
+        root = files_path_dict[file]
+        source_path = os.path.join(root, file)
+        
+        # default is class 0 file and change if necessary
+        dest_path = os.path.join(dest_0, file)
+        if root[-1] == '1' and os.path.isfile(source_path):
+            dest_path = os.path.join(dest_1, file)
+        # copy files to destination
+        shutil.copy(source_path, dest_path)  
+
+    return

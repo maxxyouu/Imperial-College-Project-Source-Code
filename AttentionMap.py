@@ -124,6 +124,8 @@ if __name__ == '__main__':
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
             masked_img = Image.fromarray(attention_map, 'RGB')
             cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
+            if args.positiveTarget:
+                cam_name += '-negativeTarget'
             masked_img.save(os.path.join(dest, cam_name+'.jpg'))
 
             # update the sequential index for next iterations

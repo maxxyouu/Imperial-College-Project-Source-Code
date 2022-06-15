@@ -1,4 +1,5 @@
 from ast import Constant
+from matplotlib.pyplot import gray
 from torchvision import transforms, datasets
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
@@ -35,6 +36,23 @@ def target_layers(model, layer_nums):
         result.append(getattr(model, 'layer'+'{}'.format(i))[-1])
     return result
 
+def get_targets(positive):
+    cam_targets = None
+    if not positive: 
+        cam_targets = [ClassifierOutputTarget(1 if target == 0 else 0) for target in y.tolist()]
+    return cam_targets
+
+def generate_cam_overlay(x, args, cam_targets):
+    if args.noiseSmooth:
+        grayscale_cam = torch.zeros((x.shape[0], x.shape[-1], x.shape[-1]),dtype=Constants.DTYPE)
+        for t in range(args.iterations):
+            # print('CAM Smoothing Iteration: {}'.format(t))
+            input_x = add_noise(x, args.std)
+            grayscale_cam += cam(input_tensor=input_x, targets=cam_targets)
+        grayscale_cam /= args.iterations
+    else:
+        grayscale_cam = cam(input_tensor=input_x, targets=cam_targets)
+    return grayscale_cam
 
 if __name__ == '__main__':
 
@@ -71,15 +89,12 @@ if __name__ == '__main__':
         print('--------- Forward Passing {}'.format(args.cam))
         x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         input_x = x
-        if args.noiseSmooth:
-            grayscale_cam = torch.zeros((x.shape[0], x.shape[-1], x.shape[-1]),dtype=Constants.DTYPE)
-            for t in range(args.iterations):
-                # print('CAM Smoothing Iteration: {}'.format(t))
-                input_x = add_noise(x, args.std)
-                grayscale_cam += cam(input_tensor=input_x, targets=None)
-            grayscale_cam /= args.iterations
-        else:
-            grayscale_cam = cam(input_tensor=input_x, targets=None)
+
+        # decides the target being propagate
+        cam_targets = get_targets(args.positiveTarget)
+
+        # generate cam attention map
+        grayscale_cam = generate_cam_overlay(x, args, cam_targets)
         
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)

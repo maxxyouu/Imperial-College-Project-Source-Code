@@ -10,11 +10,10 @@ import torchvision
 from torch.utils.data.sampler import SequentialSampler
 import torch
 from PIL import Image
-import shutil
-from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model, find_mutual_correct_images
 
 # local imports
 import Constants
+from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model, find_mutual_correct_images
         
 def add_noise(x, noise_level):
     # noise = np.random.normal(0.0, scale=(noise_level / torch.max(x_reshaped, 1)[0] - torch.min(x_reshaped, 1)[0]))
@@ -53,7 +52,6 @@ if __name__ == '__main__':
     model_target_layer = target_layers(model_wrapper.model, args.layers)
 
     model_dir_name = define_model_dir_path(args)
-
     data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
     data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
         [

@@ -39,6 +39,7 @@ def target_layers(model, layer_nums):
 def get_targets(positive):
     cam_targets = None
     if not positive: 
+        # generate non-positive targets
         cam_targets = [ClassifierOutputTarget(1 if target == 0 else 0) for target in y.tolist()]
     return cam_targets
 
@@ -83,8 +84,10 @@ if __name__ == '__main__':
     # for each image, it has a folder that store all the cam heatmaps
     sequentialSampler = SequentialSampler(data)
     dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+
     image_order_book, img_index = data.imgs, 0
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
+
     for x, y in dataloader:
         # NOTE: make sure i able index to the correct index
         print('--------- Forward Passing {}'.format(args.cam))

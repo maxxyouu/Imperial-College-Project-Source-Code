@@ -43,6 +43,7 @@ def get_targets(positive):
     return cam_targets
 
 def generate_cam_overlay(x, args, cam_targets):
+    input_x = x
     if args.noiseSmooth:
         grayscale_cam = torch.zeros((x.shape[0], x.shape[-1], x.shape[-1]),dtype=Constants.DTYPE)
         for t in range(args.iterations):
@@ -88,8 +89,6 @@ if __name__ == '__main__':
         # NOTE: make sure i able index to the correct index
         print('--------- Forward Passing {}'.format(args.cam))
         x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        input_x = x
-
         # decides the target being propagate
         cam_targets = get_targets(args.positiveTarget)
 

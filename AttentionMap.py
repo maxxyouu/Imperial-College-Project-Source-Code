@@ -10,6 +10,8 @@ from torch.utils.data.sampler import SequentialSampler
 import torch
 from PIL import Image
 import matplotlib.pyplot as plt
+import logging
+
 
 # local imports
 import Constants
@@ -124,7 +126,8 @@ if __name__ == '__main__':
     print('Positive Target Arg: {}'.format(args.positiveTarget))
 
     model_wrapper = get_trained_model(args.model)
-    model_target_layer = target_layers(model_wrapper.model, args.layers)
+    # model_target_layer = target_layers(model_wrapper.model, args.layers)
+    model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
     model_dir_name = define_model_dir_path(args)
     data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
@@ -152,7 +155,8 @@ if __name__ == '__main__':
 
         # generate cam attention map
         grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
-        
+        # grayscale_cam = grayscale_cam.detach().cpu().numpy() # for using smoothing
+
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)
         
@@ -180,13 +184,25 @@ if __name__ == '__main__':
             cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
             if not args.positiveTarget:
                 cam_name += '-negativeTarget'
+            plt.ioff()
+
+            logger = logging.getLogger()
+            old_level = logger.level
+            logger.setLevel(100)
 
             segmentation = plt.imshow(grayscale_cam[i, :], cmap='seismic')
             overlayed_image = plt.imshow(img, alpha=.5)
-            plt.savefig(os.path.join(dest, cam_name+'_seismic.jpg'))
-            segmented_img = plt.imshow(img*threshold(grayscale_cam[i, :])[...,np.newaxis])
-            plt.savefig(os.path.join(dest, cam_name+'_segmented.jpg'))
+            plt.axis('off')
+            plt.savefig(os.path.join(dest, cam_name+'_seismic.png'))
+
+            segmented_image = img*threshold(grayscale_cam[i, :])[...,np.newaxis]
+            segmented_image = np.where(segmented_image == 0, 100, segmented_image)
+            segmented_image = plt.imshow(segmented_image)
+            plt.axis('off')
+            plt.savefig(os.path.join(dest, cam_name+'_segments.png'))
             plt.close()
+            
+            logger.setLevel(old_level)
 
             masked_img = Image.fromarray(attention_map, 'RGB')
             masked_img.save(os.path.join(dest, cam_name+'_rgb.jpg'))

@@ -1,3 +1,4 @@
+from xmlrpc.client import boolean
 import torch
 import argparse
 from torchvision import transforms
@@ -35,9 +36,6 @@ def extract_args():
     my_parser.add_argument('--model',
                             type=str, default='resnet18',
                             help='model to be used for training / testing')
-    my_parser.add_argument('--pretrain',
-                            type=bool, default=False,
-                            help='whether to use a pretrained model')
     my_parser.add_argument('--batchSize',
                             type=int, default=256,
                             help='batch size to be used for training / testing')             
@@ -50,11 +48,14 @@ def extract_args():
     my_parser.add_argument('--learningRate',
                             type=float, default=0.001,
                             help='learning rate for training') 
+    my_parser.add_argument('--pretrain',
+                            type=bool, action=argparse.BooleanOptionalAction,
+                            help='whether to use a pretrained model')
     my_parser.add_argument('--augNoise',
-                            type=bool, default=False,
+                            type=bool, action=argparse.BooleanOptionalAction,
                             help='add noise during traning')   
     my_parser.add_argument('--train',
-                            type=bool, default=False,
+                            type=bool, action=argparse.BooleanOptionalAction,
                             help='whether execute the script in training or eval mode')   
 
     # Execute the parse_args() method
@@ -67,7 +68,7 @@ def extract_attention_cam_args():
                             type=str, default='skresnext50_32x4d_pretrain',
                             help='model to be used for training / testing') 
     my_parser.add_argument('--noiseSmooth',
-                            type=bool, default=True,
+                            type=bool, action=argparse.BooleanOptionalAction,
                             help='use noise for smoothing or not') 
     my_parser.add_argument('--iterations',
                             type=int, default=50,
@@ -83,10 +84,12 @@ def extract_attention_cam_args():
                             help='cam name for explanation') 
     my_parser.add_argument('--batchSize',
                             type=int, default=256,
-                            help='batch size to be used for training / testing')  
+                            help='batch size to be used for training / testing') 
+    my_parser.add_argument('--positiveTarget',
+                            type=bool, action=argparse.BooleanOptionalAction,
+                            help='generate cam from positive target')  
     # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     
-    # Execute the parse_args() method
     args = my_parser.parse_args()                                              
     return args
 

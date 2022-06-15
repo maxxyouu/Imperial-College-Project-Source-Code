@@ -3,7 +3,6 @@ from torchvision import transforms, datasets
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from torch.utils.data import DataLoader
-# from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import numpy as np
 import os
@@ -12,12 +11,9 @@ from torch.utils.data.sampler import SequentialSampler
 import torch
 from PIL import Image
 import shutil
-
-
 from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model
 
 # local imports
-from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 import Constants
         
 def add_noise(x, noise_level):
@@ -99,6 +95,7 @@ if __name__ == '__main__':
     # get all mutual correct predictions
     # find_mutual_correct_images(os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'))
 
+    # need to manually modify the smooth parameters
     args = extract_attention_cam_args()
 
     model_wrapper = get_trained_model(args.model)

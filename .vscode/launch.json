@@ -20,18 +20,18 @@
         //     ],
         //     "justMyCode": true
         // },
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "AttentionMap.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--model", "resnet18",
-                "--no-noiseSmooth",
-            ],
-            "justMyCode": true
-        },
+        // {
+        //     "name": "Python: Current File",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "AttentionMap.py",
+        //     "console": "integratedTerminal",
+        //     "args": [
+        //         "--model", "resnet18",
+        //         "--no-noiseSmooth",
+        //     ],
+        //     "justMyCode": true
+        // },
         {
             "name": "Python: Current File",
             "type": "python",

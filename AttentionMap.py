@@ -1,5 +1,3 @@
-from ast import Constant
-from matplotlib.pyplot import gray
 from torchvision import transforms, datasets
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
@@ -124,7 +122,7 @@ if __name__ == '__main__':
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
             masked_img = Image.fromarray(attention_map, 'RGB')
             cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
-            if args.positiveTarget:
+            if not args.positiveTarget:
                 cam_name += '-negativeTarget'
             masked_img.save(os.path.join(dest, cam_name+'.jpg'))
 

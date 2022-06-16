@@ -6,7 +6,7 @@ from pytorch_grad_cam.activations_and_gradients import ActivationsAndGradients
 from pytorch_grad_cam.utils.svd_on_activations import get_2d_projection
 from pytorch_grad_cam.utils.image import scale_cam_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-
+import copy
 
 class BaseCAM:
     def __init__(self,
@@ -145,32 +145,63 @@ class BaseCAM:
             scaled = scale_cam_image(cam, target_size)
             cam_per_target_layer.append(scaled[:, None, :])
 
-            # dcam = self.get_cam_image(input_tensor,
-            #                          target_layer,
-            #                          targets,
-            #                          layer_activations,
-            #                          layer_grads,
-            #                          eigen_smooth)
-            # fcam = self.get_cam_image(input_tensor,
-            #                          target_layer,
-            #                          non_targets,
-            #                          layer_activations,
-            #                          layer_grads,
-            #                          eigen_smooth)
-            # # cam = np.maximum(cam, 0)
-            # d_scaled = scale_cam_image(np.maximum(dcam, 0), target_size)
-            # f_scaled = scale_cam_image(np.maximum(fcam, 0), target_size)
-            # # if cam
-            # li_dscaled = self.lateral_inhibition(d_scaled, f_scaled)
-            # l = np.maximum(li_dscaled, 0)
-            # cam_per_target_layer.append(l[:, None, :])
         return cam_per_target_layer
+    
+    def dense_cam(self, cam_per_target_layer):
+        result = []
+        for i in range(cam_per_target_layer.shape[0]): # for each image
+            # all cams for a particular image in a batch
+            
+            # backward
+            # create a empty ndarry that store the average of each cam
+            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
+            avg_cam = None
+            for cam_index in range(img_cams.shape[0]-1, -1, -1):
+                avg_cam = np.mean(img_cams[cam_index:, :], axis=0) # TODO: make sure the axis is correct
+                img_cams[cam_index, :] = avg_cam # average of average
+
+            result.append(avg_cam)
+        
+        return np.stack(result)
+    
+    def bilateral_dense_cam(self, cam_per_target_layer):
+        result = []
+        for i in range(cam_per_target_layer.shape[0]): # for each image
+            # all cams for a particular image in a batch
+            
+            # backward
+            # create a empty ndarry that store the average of each cam
+            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
+            avg_cam = None
+            for cam_index in range(img_cams.shape[0]-1, -1, -1):
+                avg_cam = np.mean(img_cams[cam_index:, :], axis=0) # TODO: make sure the axis is correct
+                img_cams[cam_index, :] = avg_cam # average of average
+                # avg_cams.append(avg_cam)
+        
+            # forward
+            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
+            forward_avg_cam = None
+            for cam_index in range(1, img_cams.shape[0]+1):
+                 forward_avg_cam = np.mean(img_cams[:cam_index:, :], axis=0)
+                 img_cams[cam_index-1, :] = forward_avg_cam
+            #bilateral average
+
+            bilateral_avg = (forward_avg_cam + avg_cam) / 2.
+
+            result.append(bilateral_avg)
+        
+        return np.stack(result)
 
     def aggregate_multi_layers(self, cam_per_target_layer: np.ndarray) -> np.ndarray:
-        cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1)
-        cam_per_target_layer = np.maximum(cam_per_target_layer, 0) # relu act
-        result = np.mean(cam_per_target_layer, axis=1)
-        return scale_cam_image(result)
+        cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1) #[ # imgs, # of layers (cams), x_dim, y_dim], where x_dim=y_dim=230
+        dense_avg_result = self.bilateral_dense_cam(cam_per_target_layer)
+        cam_per_target_layer = np.maximum(dense_avg_result, 0) # relu act
+        return scale_cam_image(cam_per_target_layer)
+
+        # do dense averging before relu, intuition: relu at the end to keep as much averge detail as possible
+        # cam_per_target_layer = np.maximum(cam_per_target_layer, 0) # relu act
+        # result = np.mean(cam_per_target_layer, axis=1) # spatial average of cam
+        # return scale_cam_image(result)
 
     def forward_augmentation_smoothing(self,
                                        input_tensor: torch.Tensor,

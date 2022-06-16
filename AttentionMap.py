@@ -126,8 +126,8 @@ if __name__ == '__main__':
     print('Positive Target Arg: {}'.format(args.positiveTarget))
 
     model_wrapper = get_trained_model(args.model)
-    # model_target_layer = target_layers(model_wrapper.model, args.layers)
-    model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
+    model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input
+    # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
     model_dir_name = define_model_dir_path(args)
     data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
@@ -141,7 +141,8 @@ if __name__ == '__main__':
     ))
     # for each image, it has a folder that store all the cam heatmaps
     sequentialSampler = SequentialSampler(data)
-    dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+    # dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+    dataloader = DataLoader(data, batch_size=2, sampler=sequentialSampler) # TODO: check image 18
 
     image_order_book, img_index = data.imgs, 0
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)

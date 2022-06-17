@@ -94,6 +94,7 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE)
+    net = Pytorch_default_resnext(dtype=Constants.DTYPE, device=Constants.DEVICE, model_name='resnext50_32x4d')
+    net.load_learned_weights('./trained_models/resnext50_32x4d_pretrain.pt')
     # net.view_model()
     print("hello")

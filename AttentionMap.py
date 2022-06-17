@@ -39,7 +39,7 @@ def target_layers(model, layer_nums):
 
 def get_targets(positive):
     cam_targets = None
-    if not positive: 
+    if positive is not None and not positive: 
         # generate non-positive targets
         cam_targets = [ClassifierOutputTarget(1 if target == 0 else 0) for target in y.tolist()]
     # else:
@@ -58,53 +58,6 @@ def generate_cam_overlay(x, args, cam, cam_targets):
     else:
         grayscale_cam = cam(input_tensor=input_x, targets=cam_targets)
     return grayscale_cam
-
-def generate_off_the_shelf_cam(data, dataloader, model_dir_name, args, model_wrapper, model_target_layer):
-    image_order_book, img_index = data.imgs, 0
-    cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
-
-    for x, y in dataloader:
-        # NOTE: make sure i able index to the correct index
-        print('--------- Forward Passing {}'.format(args.cam))
-        x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        # decides the target being propagate
-        cam_targets = get_targets(args.positiveTarget)
-
-        # generate cam attention map
-        grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
-        
-        # denormalize the image NOTE: must be placed after forward passing
-        x = denorm(x)
-        
-        print('--------- Generating {} Heatmap'.format(args.cam))
-        # for each image in a batch
-        for i in range(x.shape[0]):
-            sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
-
-            # each image is a directory that contains all the experiment results
-            dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
-
-            # save the original image in parallel
-            if not os.path.exists(dest):
-                os.makedirs(dest)
-                # save the original image
-                torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
-
-            # swap the axis so that the show_cam_on_image works
-            img = x[i, :].cpu().detach().numpy()
-            img = np.swapaxes(img, 0, 2)
-            img = np.swapaxes(img, 0, 1)
-
-            # save the overlayed-attention map with the cam name as a tag
-            attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
-            masked_img = Image.fromarray(attention_map, 'RGB')
-            cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
-            if not args.positiveTarget:
-                cam_name += '-negativeTarget'
-            masked_img.save(os.path.join(dest, cam_name+'.jpg'))
-
-            # update the sequential index for next iterations
-            img_index += 1
 
 def threshold(x):
     mean_ = x.mean()
@@ -141,8 +94,8 @@ if __name__ == '__main__':
     ))
     # for each image, it has a folder that store all the cam heatmaps
     sequentialSampler = SequentialSampler(data)
-    # dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
-    dataloader = DataLoader(data, batch_size=2, sampler=sequentialSampler) # TODO: check image 18
+    dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+    # dataloader = DataLoader(data, batch_size=2, sampler=sequentialSampler) # TODO: check image 18
 
     image_order_book, img_index = data.imgs, 0
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
@@ -183,7 +136,7 @@ if __name__ == '__main__':
             # save the overlayed-attention map with the cam name as a tag
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
             cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
-            if not args.positiveTarget:
+            if args.positiveTarget is not None and not args.positiveTarget:
                 cam_name += '-negativeTarget'
             plt.ioff()
 

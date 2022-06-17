@@ -213,4 +213,4 @@ if __name__ == '__main__':
     
     # decide the execution mode
     # main_executation(main, args.train)
-    main_executation(main, False)
+    main_executation(main, args.train)

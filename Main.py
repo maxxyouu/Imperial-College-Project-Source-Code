@@ -78,6 +78,11 @@ class Main:
 
         for i, (_, label, img_name) in enumerate(zip(correct_pred_samples, correct_classified_labels, names)):
             dest = dest_1 if label.item() == 1 else dest_0
+            # sanity check
+            if label.item() == 1:
+                assert('meningioma' in img_name)
+            else:
+                assert('GBM' in img_name)
             torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, img_name))
 
     def check_accuracy(self, loader, best_model=False, store_sample=False, _print=False):

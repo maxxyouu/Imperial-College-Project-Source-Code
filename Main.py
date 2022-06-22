@@ -67,6 +67,7 @@ class Main:
         correct_pred_samples = features[correct_classifications, :, :, :]
         # get the corresponding label
         correct_classified_labels = y[correct_classifications]
+        names = names[correct_classifications]
 
         # create directory the model's subdirectory if not exists
         dest_0 = os.path.join(Constants.STORAGE_PATH, 'correct_preds', self.model_name, '0')
@@ -79,10 +80,12 @@ class Main:
         for i, (_, label, img_name) in enumerate(zip(correct_pred_samples, correct_classified_labels, names)):
             dest = dest_1 if label.item() == 1 else dest_0
             # sanity check
-            if label.item() == 1:
-                assert('meningioma' in img_name)
-            else:
-                assert('GBM' in img_name)
+            if label.item() == 1 and 'meningioma' not in img_name:
+                print('label={}-{}'.format(label.item(), img_name))
+                continue
+            elif label.item() == 0 and 'GBM' not in img_name:
+                print('label={}-{}'.format(label.item(), img_name))
+                continue
             torchvision.utils.save_image(correct_pred_samples[i, :, :, :], os.path.join(dest, img_name))
 
     def check_accuracy(self, loader, best_model=False, store_sample=False, _print=False):

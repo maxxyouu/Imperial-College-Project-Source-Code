@@ -67,7 +67,8 @@ class Main:
         correct_pred_samples = features[correct_classifications, :, :, :]
         # get the corresponding label
         correct_classified_labels = y[correct_classifications]
-        names = names[correct_classifications]
+        names = np.array(names)
+        names = names[correct_classifications.cpu()]
 
         # create directory the model's subdirectory if not exists
         dest_0 = os.path.join(Constants.STORAGE_PATH, 'correct_preds', self.model_name, '0')

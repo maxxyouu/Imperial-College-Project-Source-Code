@@ -42,7 +42,7 @@ class Pytorch_default_resNet(Baseline_Model):
         super().__init__(pretrain, model_name)
 
         # modify the model to match our dataset with two class only
-        # self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
 
 class Pytorch_default_vgg(Baseline_Model):
     def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='vgg11_bn') -> None:

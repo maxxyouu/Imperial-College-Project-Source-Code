@@ -95,5 +95,4 @@ if __name__ == '__main__':
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
     net = Pytorch_default_resNet(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=True)
-    torch.save(net.model.state_dict(), './trained_models/{}.pt'.format('resnet50_imgNet'))
     print(sum(p.numel() for p in net.model.parameters() if p.requires_grad))

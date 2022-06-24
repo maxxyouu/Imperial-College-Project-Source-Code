@@ -43,7 +43,7 @@ class CLEImageDataset(Dataset):
         if self.target_transform:
             label = self.target_transform(label)
 
-        return image, label, image_name
+        return image, label#, image_name
 
 if __name__ == '__main__':
 #     # test if the custom dataset works

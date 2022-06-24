@@ -32,10 +32,11 @@ def define_model_dir_path(args):
 
 # TODO: the following only valid for resnet 50 and resnext 50
 def target_layers(model, layer_nums):
-    result = []
-    for i in layer_nums:
-        result.append(getattr(model, 'layer'+'{}'.format(i))[-1])
-    return result
+    # result = []
+    # for i in layer_nums:
+    #     result.append()
+    # return result
+    return [getattr(model, 'layer'+'{}'.format(layer_nums))[-1]]
 
 def get_targets(positive):
     cam_targets = None

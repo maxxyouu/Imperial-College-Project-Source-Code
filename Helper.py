@@ -82,7 +82,7 @@ def extract_attention_cam_args():
                             type=str, default='xgradcam',
                             help='cam name for explanation') 
     my_parser.add_argument('--layers',
-                            type=list, default=[3,4],
+                            type=int, default=4,
                             help='cam name for explanation') 
     my_parser.add_argument('--batchSize',
                             type=int, default=256,

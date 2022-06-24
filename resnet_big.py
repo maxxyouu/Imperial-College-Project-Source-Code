@@ -172,6 +172,9 @@ class SimClrSkResneXt(nn.Module):
         super(SimClrSkResneXt, self).__init__()
         model_fun, dim_in = model_dict[name]
         self.encoder = model_fun()
+
+        # remove the exisiting head
+        self.encoder.fc = nn.Sequential()
         assert((dim_in // 4) > feat_dim)
         if head == 'mlp':
             self.head = nn.Sequential(

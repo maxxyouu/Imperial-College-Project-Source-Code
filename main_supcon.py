@@ -278,6 +278,7 @@ def main():
     # logger = tb_logger.Logger(logdir=opt.tb_folder, flush_secs=2)
 
     # training routine
+    print('Training Started')
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(opt, optimizer, epoch) # change the lr in place
 

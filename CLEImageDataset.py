@@ -20,11 +20,11 @@ class CLEImageDataset(Dataset):
         return len(self.img_labels)
 
     def _get_image_path(self, idx):
-        # elements = self.img_labels.iloc[idx, 0].split()[0:2]
-        # disease, patient_id =elements[0], elements[-1][0:elements[1].index('-')]
-        # patient_dir = ' '.join([disease, patient_id])
-        # img_path = os.path.join(self.img_dir, patient_dir, self.img_labels.iloc[idx, 0])
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+        elements = self.img_labels.iloc[idx, 0].split()[0:2]
+        disease, patient_id =elements[0], elements[-1][0:elements[1].index('-')]
+        patient_dir = ' '.join([disease, patient_id])
+        img_path = os.path.join(self.img_dir, patient_dir, self.img_labels.iloc[idx, 0])
+        # img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0]) # for non-distilledFrame folder
         return img_path
         
     def __getitem__(self, idx):

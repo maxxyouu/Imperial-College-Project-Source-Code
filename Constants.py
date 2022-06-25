@@ -21,3 +21,4 @@ if WORK_ENV == 'COLAB':
 DATA_MEAN = 0.1496
 DATA_STD = 0.1960
 
+SIMCLR_MODEL_PATH = 'SupCon_models/path_models/SimCLR_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_cosine'

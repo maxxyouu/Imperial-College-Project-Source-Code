@@ -193,7 +193,16 @@ if __name__ == '__main__':
     val, val_dataloader = data_dict['val']
     test, test_dataloader = data_dict['test']
 
-    if args.train:
+    if args.simClr and Constants.WORK_ENV == 'COLAB': # TODO
+        # load the skresnext model 
+
+        # remove the head
+
+        # replace the weight inside the feature extractor
+
+        # add width 3 of projection head
+        pass
+    elif args.train:
         model_wrapper = switch_model(args.model, args.pretrain)
     else:
         model_wrapper = get_trained_model(args.model)

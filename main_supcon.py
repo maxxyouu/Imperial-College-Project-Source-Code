@@ -19,13 +19,6 @@ from losses import SupConLoss
 from CLEImageDataset import *
 import Constants
 
-try:
-    import apex
-    from apex import amp, optimizers
-except ImportError:
-    pass
-
-
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
 
@@ -274,9 +267,6 @@ def main():
     # build optimizer
     optimizer = set_optimizer(opt, model)
 
-    # tensorboard
-    # logger = tb_logger.Logger(logdir=opt.tb_folder, flush_secs=2)
-
     # training routine
     print('Training Started')
     for epoch in range(1, opt.epochs + 1):
@@ -287,10 +277,6 @@ def main():
         loss = train(train_loader, model, criterion, optimizer, epoch, opt)
         time2 = time.time()
         print('epoch {}, total time {:.2f}, loss {}'.format(epoch, time2 - time1, loss))
-
-        # tensorboard logger
-        # logger.log_value('loss', loss, epoch)
-        # logger.log_value('learning_rate', optimizer.param_groups[0]['lr'], epoch)
 
         if epoch % opt.save_freq == 0:
             save_file = os.path.join(

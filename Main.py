@@ -263,6 +263,7 @@ if __name__ == '__main__':
         'augNoise': args.augNoise,
         'pretrain': args.pretrain,
         'simClr': args.simClr,
+        'supCon': args.supCon,
         'chkPointName': args.chkPointName
     }
 

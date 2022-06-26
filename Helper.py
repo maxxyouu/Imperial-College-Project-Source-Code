@@ -65,6 +65,9 @@ def extract_args():
     my_parser.add_argument('--simClr',
                             type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
                             help='for simclr task') 
+    my_parser.add_argument('--supCon',
+                            type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
+                            help='for supCon task') 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
     return args

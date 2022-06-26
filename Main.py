@@ -31,6 +31,8 @@ class Main:
                 name += '_pretrain'
             if args['simClr']:
                 name += '_simclr'
+            elif args['supCon']:
+                name += '_supCon'
             if args['chkPointName']:
                 name = name + '_' + args['chkPointName'][:-4]
             return name
@@ -216,7 +218,7 @@ if __name__ == '__main__':
     val, val_dataloader = data_dict['val']
     test, test_dataloader = data_dict['test']
 
-    if args.simClr: # TODO
+    if args.simClr or args.supCon: # TODO
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
         model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, Constants.SIMCLR_MODEL_PATH, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one

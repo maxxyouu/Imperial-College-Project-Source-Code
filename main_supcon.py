@@ -164,8 +164,8 @@ def set_loader(opt):
                                           transform=TwoCropTransform(train_transform),
                                           download=True)
     elif opt.dataset == 'path':
-        train_dataset = CLEImageDataset(os.path.join(Constants.DATA_PARENT_PATH, 'cleanDistilledFrames'), 
-                                        os.path.join(Constants.DATA_PARENT_PATH, 'annotations.csv'), 
+        train_dataset = CLEImageDataset(os.path.join(Constants.DATA_PARENT_PATH, 'train'), 
+                                        os.path.join(Constants.DATA_PARENT_PATH, 'train_annotations.csv'), 
                                         transform=TwoCropTransform(train_transform))
     else:
         raise ValueError(opt.dataset)

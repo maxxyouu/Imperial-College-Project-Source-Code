@@ -219,8 +219,12 @@ if __name__ == '__main__':
     test, test_dataloader = data_dict['test']
 
     if args.simClr or args.supCon: # TODO
+        if args.simClr:
+            clr_weight_path = Constants.SIMCLR_MODEL_PATH
+        elif args.supCon:
+            clr_weight_path = Constants.SUPCON_MODEL_PATH
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
-        model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, Constants.SIMCLR_MODEL_PATH, args.chkPointName)
+        model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one
         clr_model = SimClrSkResneXt(name=args.model) # with pretrained weight in the feature extractor
         model_wrapper = Pytorch_default_skresnext()

@@ -220,7 +220,7 @@ if __name__ == '__main__':
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
         model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, Constants.SIMCLR_MODEL_PATH, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one
-        clr_model = SimClrSkResneXt(name=args.model)
+        clr_model = SimClrSkResneXt(name=args.model) # with pretrained weight in the feature extractor
         model_wrapper = Pytorch_default_skresnext()
         model_wrapper.model.fc = deepcopy(clr_model.head) # NOTE: random but to be replaced with trained weights
         saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
@@ -228,8 +228,11 @@ if __name__ == '__main__':
         pickel = compatible_weights(saved_model['model'])
         model_wrapper.model.load_state_dict(pickel) # get the state dict
         model_wrapper.model.to(Constants.DEVICE)
-        # overload the weight in the head so that it is randomized
-        model_wrapper.model.fc = deepcopy(clr_model.head)        
+        
+        # retraining start from the middle of the training head 
+        model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
+        model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, model_wrapper.model.fc[4].out_features)
+
     elif args.train:
         model_wrapper = switch_model(args.model, args.pretrain)
     else:

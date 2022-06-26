@@ -232,6 +232,7 @@ if __name__ == '__main__':
         model_wrapper.model.to(Constants.DEVICE)
         
         # retraining start from the middle of the training head 
+        model_wrapper.model.fc[1] = nn.Linear(model_wrapper.model.fc[1].in_features, model_wrapper.model.fc[1].out_features)
         model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
         model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, 2)
 

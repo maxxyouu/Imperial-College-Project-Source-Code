@@ -29,7 +29,7 @@ class Main:
                 name += '_noise'
             if args['pretrain']:
                 name += '_pretrain'
-            if args['simclr']:
+            if args['simClr']:
                 name += 'simclr'
             if args['chkPointName']:
                 name += args['chkPointName'][:-4]
@@ -206,6 +206,8 @@ if __name__ == '__main__':
     print('augNoise Arg: {}'.format(args.augNoise))
     print('train Arg: {}'.format(args.train))
     print('simclr: {}'.format(args.simClr))
+    print('chkPointName: {}'.format(args.chkPointName))
+
 
     train_transforms, test_transforms = data_transformations()
 

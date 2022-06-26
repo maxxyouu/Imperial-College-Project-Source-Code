@@ -11,7 +11,7 @@
             "program": "Main.py",
             "console": "integratedTerminal",
             "args": [
-                "--simClr"
+                "--supCon"
             ],
             "justMyCode": true
         },

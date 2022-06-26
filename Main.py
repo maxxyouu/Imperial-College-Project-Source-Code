@@ -208,6 +208,7 @@ if __name__ == '__main__':
     print('augNoise Arg: {}'.format(args.augNoise))
     print('train Arg: {}'.format(args.train))
     print('simclr: {}'.format(args.simClr))
+    print('supCon: {}'.format(args.supCon))
     print('chkPointName: {}'.format(args.chkPointName))
 
 
@@ -223,6 +224,7 @@ if __name__ == '__main__':
             clr_weight_path = Constants.SIMCLR_MODEL_PATH
         elif args.supCon:
             clr_weight_path = Constants.SUPCON_MODEL_PATH
+        print(clr_weight_path)
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
         model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one
@@ -236,7 +238,7 @@ if __name__ == '__main__':
         model_wrapper.model.to(Constants.DEVICE)
         
         # retraining start from the middle of the training head 
-        model_wrapper.model.fc[1] = nn.Linear(model_wrapper.model.fc[1].in_features, model_wrapper.model.fc[1].out_features)
+        model_wrapper.model.fc[0] = nn.Linear(model_wrapper.model.fc[0].in_features, model_wrapper.model.fc[0].out_features)
         model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
         model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, 2)
 

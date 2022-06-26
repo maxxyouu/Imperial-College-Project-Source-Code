@@ -60,7 +60,7 @@ def extract_args():
                             type=bool, action=argparse.BooleanOptionalAction,
                             help='whether execute the script in training or eval mode')   
     my_parser.add_argument('--chkPointName',
-                            type=str, default='last.pth', # example: ckpt_epoch_500
+                            type=str, default='ckpt_epoch_100.pth', # example: ckpt_epoch_500
                             help='the check point name')  
     my_parser.add_argument('--simClr',
                             type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500

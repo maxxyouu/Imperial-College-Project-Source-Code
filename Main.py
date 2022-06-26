@@ -30,9 +30,9 @@ class Main:
             if args['pretrain']:
                 name += '_pretrain'
             if args['simClr']:
-                name += 'simclr'
+                name += '_simclr'
             if args['chkPointName']:
-                name += args['chkPointName'][:-4]
+                name = name + '_' + args['chkPointName'][:-4]
             return name
 
         # a pytorch model

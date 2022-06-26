@@ -29,6 +29,10 @@ class Main:
                 name += '_noise'
             if args['pretrain']:
                 name += '_pretrain'
+            if args['simclr']:
+                name += 'simclr'
+            if args['chkPointName']:
+                name += args['chkPointName'][:-4]
             return name
 
         # a pytorch model
@@ -242,7 +246,9 @@ if __name__ == '__main__':
         'patience': args.earlyStoppingPatience,
         'epochs': args.epochs,
         'augNoise': args.augNoise,
-        'pretrain': args.pretrain
+        'pretrain': args.pretrain,
+        'simClr': args.simClr,
+        'chkPointName': args.chkPointName
     }
 
     main = Main(params)

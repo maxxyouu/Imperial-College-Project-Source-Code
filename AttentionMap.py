@@ -18,8 +18,6 @@ import Constants
 from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model, find_mutual_correct_images
         
 def add_noise(x, noise_level):
-    # noise = np.random.normal(0.0, scale=(noise_level / torch.max(x_reshaped, 1)[0] - torch.min(x_reshaped, 1)[0]))
-    # x_reshaped = torch.reshape(x, (x.shape[0], -1))
     noise = np.random.normal(0.0, scale=noise_level)
     noise = torch.tensor(noise, device=Constants.DEVICE, dtype=Constants.DTYPE)
     return x + noise
@@ -96,7 +94,6 @@ if __name__ == '__main__':
     # for each image, it has a folder that store all the cam heatmaps
     sequentialSampler = SequentialSampler(data)
     dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
-    # dataloader = DataLoader(data, batch_size=2, sampler=sequentialSampler) # TODO: check image 18
 
     image_order_book, img_index = data.imgs, 0
     cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)

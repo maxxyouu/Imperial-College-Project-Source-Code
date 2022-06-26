@@ -36,7 +36,7 @@ def extract_args():
 
     # Add the arguments
     my_parser.add_argument('--model',
-                            type=str, default='resnet18',
+                            type=str, default='skresnext50_32x4d',
                             help='model to be used for training / testing')
     my_parser.add_argument('--batchSize',
                             type=int, default=256,
@@ -59,7 +59,12 @@ def extract_args():
     my_parser.add_argument('--train',
                             type=bool, action=argparse.BooleanOptionalAction,
                             help='whether execute the script in training or eval mode')   
-
+    my_parser.add_argument('--chkPointName',
+                            type=str, default='last.pth', # example: ckpt_epoch_500
+                            help='the check point name')  
+    my_parser.add_argument('--simClr',
+                            type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
+                            help='for simclr task') 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
     return args
@@ -67,7 +72,7 @@ def extract_args():
 def extract_attention_cam_args():
     my_parser = argparse.ArgumentParser(description='')
     my_parser.add_argument('--model',
-                            type=str, default='skresnext50_32x4d_pretrain',
+                            type=str, default='skresnext50_32x4d',
                             help='model to be used for training / testing') 
     my_parser.add_argument('--noiseSmooth',
                             type=bool, action=argparse.BooleanOptionalAction,
@@ -90,6 +95,7 @@ def extract_attention_cam_args():
     my_parser.add_argument('--positiveTarget',
                             type=bool, action=argparse.BooleanOptionalAction,
                             help='generate cam from positive target')  
+ 
     # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
     
     args = my_parser.parse_args()                                              

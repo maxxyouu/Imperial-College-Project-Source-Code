@@ -1,10 +1,15 @@
+from copy import deepcopy
+from pickle import FALSE
+from collections import OrderedDict
 import torch
 from torch import nn
 import torchvision
 import os
 import torch.optim as optim
 import numpy as np
-
+from BaselineModel import Pytorch_default_skresnext
+from resnet_big import *
+import timm
 # local file import
 from Helper import extract_args, main_executation, data_transformations, pytorch_dataset, switch_model
 import Constants
@@ -175,6 +180,17 @@ class Main:
             if patience <= 0:
                 break
 
+def compatible_weights(clr_weights):
+    result = []
+    for key, value in clr_weights.items():
+        key_copy = key
+        if 'encoder.' in key:
+            key_copy = key.replace('encoder.', '')
+        elif 'head.' in key:
+            be_replaced = key[:len('head')] # + 1 for the head.0, head.4, and etc to be fc.0, fc.4 and etc
+            key_copy = key.replace(be_replaced, 'fc')
+        result.append((key_copy, value))
+    return OrderedDict(result)
 
 if __name__ == '__main__':
 
@@ -193,15 +209,20 @@ if __name__ == '__main__':
     val, val_dataloader = data_dict['val']
     test, test_dataloader = data_dict['test']
 
-    if args.simClr and Constants.WORK_ENV == 'COLAB': # TODO
-        # load the skresnext model 
+    if args.simClr: # TODO
+        assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
+        model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, Constants.SIMCLR_MODEL_PATH, args.chkPointName)
+        # load the skresnext model and replace the head with a appropriate one
+        clr_model = SimClrSkResneXt(name=args.model)
+        model_wrapper = Pytorch_default_skresnext()
+        model_wrapper.model.fc = deepcopy(clr_model.head) # NOTE: random but to be replaced with trained weights
+        saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
 
-        # remove the head
-
-        # replace the weight inside the feature extractor
-
-        # add width 3 of projection head
-        pass
+        pickel = compatible_weights(saved_model['model'])
+        model_wrapper.model.load_state_dict(pickel) # get the state dict
+        model_wrapper.model.to(Constants.DEVICE)
+        # overload the weight in the head so that it is randomized
+        model_wrapper.model.fc = deepcopy(clr_model.head)        
     elif args.train:
         model_wrapper = switch_model(args.model, args.pretrain)
     else:

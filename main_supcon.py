@@ -155,6 +155,13 @@ def set_loader(opt):
         normalize,
     ])
 
+    if opt.method == 'SupCon':
+        data_name = 'train'
+        data_annotation = 'train_annotations.csv'
+    elif opt.method == 'SimCLR':
+        data_name = 'cleanDistilledFrames'
+        data_annotation = 'annotations.csv'
+
     if opt.dataset == 'cifar10':
         train_dataset = datasets.CIFAR10(root=opt.data_folder,
                                          transform=TwoCropTransform(train_transform),
@@ -164,8 +171,8 @@ def set_loader(opt):
                                           transform=TwoCropTransform(train_transform),
                                           download=True)
     elif opt.dataset == 'path':
-        train_dataset = CLEImageDataset(os.path.join(Constants.DATA_PARENT_PATH, 'train'), 
-                                        os.path.join(Constants.DATA_PARENT_PATH, 'train_annotations.csv'), 
+        train_dataset = CLEImageDataset(os.path.join(Constants.DATA_PARENT_PATH, data_name), 
+                                        os.path.join(Constants.DATA_PARENT_PATH, data_annotation), 
                                         transform=TwoCropTransform(train_transform))
     else:
         raise ValueError(opt.dataset)

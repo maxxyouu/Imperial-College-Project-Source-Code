@@ -32,6 +32,10 @@ def parse_option():
                         help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=500,
                         help='number of training epochs')
+    parser.add_argument('--feat_dim', type=int, default=64,
+                        help='feature dimension to be projected')
+    parser.add_argument('--head_type', type=str, default='mlp',
+                        help='projection head type')
 
     # optimization
     parser.add_argument('--learning_rate', type=float, default=0.05,
@@ -94,9 +98,9 @@ def parse_option():
     for it in iterations:
         opt.lr_decay_epochs.append(int(it))
 
-    opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
+    opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}_{}_{}'.\
         format(opt.method, opt.dataset, opt.model, opt.learning_rate,
-               opt.weight_decay, opt.batch_size, opt.temp, opt.trial)
+               opt.weight_decay, opt.batch_size, opt.temp, opt.trial, opt.feat_dim, opt.head_type)
 
     if opt.cosine:
         opt.model_name = '{}_cosine'.format(opt.model_name)
@@ -186,7 +190,7 @@ def set_loader(opt):
 
 
 def set_model(opt):
-    model = SimClrSkResneXt(name=opt.model)
+    model = SimClrSkResneXt(name=opt.model, head=opt.head_type, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # NOTE: not use this in our case

@@ -168,7 +168,7 @@ class LinearBatchNorm(nn.Module):
 
 class SimClrSkResneXt(nn.Module):
     """backbone + projection head"""
-    def __init__(self, name='skresnext50_32x4d', head='mlp', feat_dim=256):
+    def __init__(self, name='skresnext50_32x4d', head='linear', feat_dim=128):
         super(SimClrSkResneXt, self).__init__()
         model_fun, dim_in = model_dict[name]
         self.encoder = model_fun()
@@ -184,6 +184,8 @@ class SimClrSkResneXt(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.Linear(dim_in // 4, feat_dim)
             )
+        elif head == 'linear':
+            self.head = nn.Linear(dim_in, feat_dim)
         else:
             raise NotImplementedError(
                 'head not supported: {}'.format(head))
@@ -196,7 +198,7 @@ class SimClrSkResneXt(nn.Module):
 
 class SupConResNet(nn.Module):
     """backbone + projection head"""
-    def __init__(self, name='resnet50', head='mlp', feat_dim=128):
+    def __init__(self, name='resnet50', head='linear', feat_dim=128):
         super(SupConResNet, self).__init__()
         model_fun, dim_in = model_dict[name]
         self.encoder = model_fun()

@@ -168,13 +168,14 @@ class LinearBatchNorm(nn.Module):
 
 class SimClrSkResneXt(nn.Module):
     """backbone + projection head"""
-    def __init__(self, name='skresnext50_32x4d', head='linear', feat_dim=128):
+    def __init__(self, name='skresnext50_32x4d', head='linear', feat_dim=64):
         super(SimClrSkResneXt, self).__init__()
         model_fun, dim_in = model_dict[name]
         self.encoder = model_fun()
 
         # remove the existing head that is randomly initialized
         self.encoder.fc = nn.Sequential()
+        print('name: {} head: {} feature dim: {}'.format(name, head, feat_dim))
         assert((dim_in // 4) > feat_dim)
         if head == 'mlp':
             self.head = nn.Sequential(

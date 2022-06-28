@@ -153,5 +153,9 @@ if __name__ == '__main__':
             
             logger.setLevel(old_level)
 
+            masked_img = Image.fromarray(attention_map, 'RGB')
+            masked_img.save(os.path.join(dest, cam_name+'_rgb.jpg'))
+
+
             # update the sequential index for next iterations
             img_index += 1

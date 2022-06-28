@@ -62,7 +62,7 @@ LRP_MODE = args.lrpMode
 CHOSEN_ALPHA = args.alpha # 2 # BETA = 1 # visually it is the best setting
 target_layer = mode
 target_class = None
-cam_name = LRP_MODE + '-' + args.target_layer + '-' + str(args.alpha)
+cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha))
 
 # create target result directory if not exists
 # RESULT_FOLDER_BASE_NAME = './results' + '_' + pt_name + '_alpha' + str(CHOSEN_ALPHA) #LRP_MODE
@@ -133,7 +133,7 @@ data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
 ))
 # for each image, it has a folder that store all the cam heatmaps
 sequentialSampler = SequentialSampler(data)
-dataloader = DataLoader(data, batch_size=2, sampler=sequentialSampler) # TODO: check image 18
+dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
 image_order_book, img_index = data.imgs, 0
 
 for x, y in dataloader:
@@ -188,71 +188,7 @@ for x, y in dataloader:
         
         logger.setLevel(old_level)
 
-        # masked_img = Image.fromarray(attention_map, 'RGB')
-        # masked_img.save(os.path.join(dest, LRP_MODE+'_rgb.jpg'))
-        mask = plt.imshow(r_cam, cmap='gray')
-        overlayed_image = plt.imshow(img, alpha=.5)
-        plt.axis('off')
-        plt.savefig(os.path.join(dest, cam_name+'_gray.png'))
-
         # update the sequential index for next iterations
         forward_handler.remove()
         backward_handler.remove()
         img_index += 1
-
-
-
-# path_s = os.listdir('./picture')
-# path_s.pop(path_s.index('.DS_Store'))
-
-# for path in path_s:
-
-#     if path == '.DS_Stovcre': continue
-#     img_path_long = './picture/{}'.format(path)
-
-#     # img_path_long = path
-#     img = cv2.imread(img_path_long,1)
-#     img_show = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-#     img_show = cv2.resize(img_show,(230,230))
-#     img = np.float32(cv2.resize(img, (230,230)))/255
-
-#     in_tensor = preprocess_image(img)#.cuda()
-#     # R_CAM, output = model(in_tensor, lrp=lrp_mode, mode=mode, target_class=target_class)
-#     internal_R_cams, output = model(in_tensor, mode, [target_class], lrp=LRP_MODE, internal=False, alpha=CHOSEN_ALPHA)
-
-#     for i, cam in enumerate(internal_R_cams):
-#         fig = plt.figure(figsize=(10, 10))
-#         plt.subplots_adjust(bottom=0.01)
-
-#         plt.subplot(2, 5, 1)
-#         plt.imshow(img_show)
-#         plt.title('Original')
-#         plt.axis('off')
-
-#         plt.subplot(2, 5, 1 + 5)
-#         plt.imshow(img_show)
-#         plt.axis('off')
-
-#         print('LRP1')
-#         plt.subplot(2, 5, 5)
-#         cam = cam.reshape(size,size).detach().numpy()
-#         cam = cv2.resize(cam, (230, 230))
-#         plt.imshow((cam),cmap='seismic')
-#         plt.imshow(img_show, alpha=.5)
-#         plt.title('Relevance_CAM', fontsize=15)
-#         plt.axis('off')
-
-#         print('LRP2')
-#         plt.subplot(2, 5, 5 + 5)
-#         plt.imshow(img_show*threshold(cam)[...,np.newaxis])
-#         plt.title('Relevance_CAM', fontsize=15)
-#         plt.axis('off')
-
-#         plt.savefig('./{}/{}-{}{}-{}.jpg'.format(RESULT_FOLDER_BASE_NAME, path[:-4], mode, i, LRP_MODE))
-
-#         # plt.clf()
-#         plt.close()
-
-#     forward_handler.remove()
-#     backward_handler.remove()
-# print('Done')   

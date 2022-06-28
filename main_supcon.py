@@ -177,7 +177,7 @@ def set_loader(opt):
     elif opt.dataset == 'path':
         train_dataset = CLEImageDataset(os.path.join(Constants.DATA_PARENT_PATH, data_name), 
                                         os.path.join(Constants.DATA_PARENT_PATH, data_annotation), 
-                                        transform=TwoCropTransform(train_transform))
+                                        transform=TwoCropTransform(train_transform), return_size=2)
     else:
         raise ValueError(opt.dataset)
 

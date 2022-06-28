@@ -6,11 +6,12 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 class CLEImageDataset(Dataset):
-    def __init__(self, img_dir, annotations_file, transform=None, target_transform=None):
+    def __init__(self, img_dir, annotations_file, transform=None, target_transform=None, return_size=2):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
+        self.return_size = return_size
 
     def transformation(self, transforms):
         assert(self.transform is None)
@@ -45,7 +46,10 @@ class CLEImageDataset(Dataset):
         if self.target_transform:
             label = self.target_transform(label)
 
-        return image, label#, image_name
+        if self.return_size == 2:
+            return image, label
+        # default return_size = 3
+        return image, label, image_name # NOTE: must have image_name during model training
 
 if __name__ == '__main__':
 #     # test if the custom dataset works

@@ -68,6 +68,12 @@ def extract_args():
     my_parser.add_argument('--supCon',
                             type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
                             help='for supCon task') 
+    my_parser.add_argument('--feat_dim',
+                            type=int, default=64, # example: ckpt_epoch_500
+                            help='feature dimension of the loaded clr model') 
+    my_parser.add_argument('--head_type',
+                            type=str, default='mlp', # example: ckpt_epoch_500
+                            help='head type of the clr model') 
     my_parser.add_argument('--folderName',
                             type=str, default=None, # example: ckpt_epoch_500
                             help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 

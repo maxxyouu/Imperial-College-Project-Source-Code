@@ -230,7 +230,7 @@ if __name__ == '__main__':
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d' and args.folderName is not None)
         model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one
-        clr_model = SimClrSkResneXt(name=args.model) # with pretrained weight in the feature extractor
+        clr_model = SimClrSkResneXt(name=args.model, head=args.head_type, feat_dim=args.feat_dim) # with pretrained weight in the feature extractor
         model_wrapper = Pytorch_default_skresnext()
         model_wrapper.model.fc = deepcopy(clr_model.head) # NOTE: random but to be replaced with trained weights
         saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
@@ -276,5 +276,4 @@ if __name__ == '__main__':
     print('Number of parameters: {}'.format(model_wrapper.model_size()))
     
     # decide the execution mode
-    # main_executation(main, args.train)
     main_executation(main, args.train)

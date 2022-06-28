@@ -31,7 +31,7 @@ my_parser.add_argument('--pickle_name',
                         type=str, default=MODEL_WEIGHTS,
                         help='pickel name for weight loading') 
 my_parser.add_argument('--state_dict_path',
-                        type=str, default='/content/drive/MyDrive/trained_models/skresnext50_32x4d_supCon_last_1layer.pt', #os.path.join(Constants.SAVED_MODEL_PATH, MODEL_WEIGHTS),
+                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, MODEL_WEIGHTS),
                         help='iteration for smoothing') 
 my_parser.add_argument('--target_layer',
                         type=str, default='layer3',

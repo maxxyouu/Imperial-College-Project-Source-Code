@@ -67,7 +67,8 @@ LRP_MODE = args.lrpMode
 CHOSEN_ALPHA = args.alpha # 2 # BETA = 1 # visually it is the best setting
 target_layer = mode
 target_class = None
-cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha))
+# cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha))
+cam_name = pt_name[:-4] + '_' + args.target_layer + '_alpha{}'.format(str(args.alpha))
 
 # create target result directory if not exists
 # RESULT_FOLDER_BASE_NAME = './results' + '_' + pt_name + '_alpha' + str(CHOSEN_ALPHA) #LRP_MODE
@@ -77,10 +78,10 @@ cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha
 model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
 if 'simclr' in pt_name or 'supCon' in pt_name:
-    if 'simclr' in pt_name:
-        cam_name = cam_name + '-simclr'
-    else:
-        cam_name = cam_name + '-supCon'
+    # if 'simclr' in pt_name:
+    #     cam_name = cam_name + '-simclr'
+    # else:
+    #     cam_name = cam_name + '-supCon'
     dim_in = model.fc.in_features
     # the shape that can be placed with trained weights
     if '3Layers' in pt_name: # classification model that contains 3 projection head layers
@@ -91,10 +92,10 @@ if 'simclr' in pt_name or 'supCon' in pt_name:
                     ReLU(inplace=True),
                     Linear(dim_in // 4, model.num_classes)
         )
-        cam_name +=  '-width3'
+        # cam_name +=  '-width3'
     else:
         model.fc = Linear(model.fc.in_features, 2, device=Constants.DEVICE) 
-        cam_name += '-width1'  
+        # cam_name += '-width1'  
 else:
     model.fc = Linear(model.fc.in_features, 2, device=Constants.DEVICE)
     cam_name += '-vanillaPretrain-width1' 

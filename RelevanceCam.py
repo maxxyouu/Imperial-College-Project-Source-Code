@@ -149,18 +149,16 @@ for x, y in dataloader:
     # denormalize the image NOTE: must be placed after forward passing
     x = denorm(x)
     
-    print('--------- Generating {} Heatmap'.format(args.cam))
+    print('--------- Generating relevance-cam Heatmap')
     # for each image in a batch
-    for i in range(x.shape[0]):
-        
+    for i in range(x.shape[0]):        
         sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
         dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', args.dest_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
 
-        img = x[i, :].cpu().detach().numpy()
+        img = x[i, :]
         img = np.swapaxes(img, 0, 2)
-        img = np.swapaxes(img, 0, 1) #TODO check if you need this
-        # img_show = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # img_show = cv2.resize(img_show,(230,230))
+        img = np.swapaxes(img, 0, 1)
+        img = cv2.cvtColor(img.detach().numpy(), cv2.COLOR_BGR2RGB)
 
         # save the original image in parallel
         if not os.path.exists(dest):
@@ -174,12 +172,14 @@ for x, y in dataloader:
         old_level = logger.level
         logger.setLevel(100)
 
-        segmentation = plt.imshow(r_cams[i, :], cmap='seismic')
+        r_cam = r_cams[i, :].reshape(size, size).detach().numpy()
+        r_cam = cv2.resize(r_cam, (230, 230))
+        mask = plt.imshow(r_cam, cmap='seismic')
         overlayed_image = plt.imshow(img, alpha=.5)
         plt.axis('off')
         plt.savefig(os.path.join(dest, cam_name+'_seismic.png'))
 
-        segmented_image = img*threshold(r_cams[i, :])[...,np.newaxis]
+        segmented_image = img*threshold(r_cam)[...,np.newaxis]
         segmented_image = np.where(segmented_image == 0, 100, segmented_image) # with white color
         segmented_image = plt.imshow(segmented_image)
         plt.axis('off')
@@ -190,6 +190,10 @@ for x, y in dataloader:
 
         # masked_img = Image.fromarray(attention_map, 'RGB')
         # masked_img.save(os.path.join(dest, LRP_MODE+'_rgb.jpg'))
+        mask = plt.imshow(r_cam, cmap='gray')
+        overlayed_image = plt.imshow(img, alpha=.5)
+        plt.axis('off')
+        plt.savefig(os.path.join(dest, cam_name+'_gray.png'))
 
         # update the sequential index for next iterations
         forward_handler.remove()

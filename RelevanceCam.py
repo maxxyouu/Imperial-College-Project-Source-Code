@@ -21,23 +21,23 @@ from torch.utils.data.sampler import SequentialSampler
 from Helper import denorm
 import logging
 from PIL import Image
-
-
+# skresnext50_32x4d_supCon_last_1layer
+MODEL_WEIGHTS = 'skresnext50_32x4d_supCon_last_1Layer.pt'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model',
                         type=str, default='skresnext50_32x4d',
                         help='model to be used for training / testing') 
 my_parser.add_argument('--pickle_name',
-                        type=str, default='skresnext50_32x4d_supCon_last_3Layers',
+                        type=str, default=MODEL_WEIGHTS,
                         help='pickel name for weight loading') 
 my_parser.add_argument('--state_dict_path',
-                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, 'skresnext50_32x4d_supCon_last_1Layer'),
+                        type=str, default='/content/drive/MyDrive/trained_models/skresnext50_32x4d_supCon_last_1layer.pt', #os.path.join(Constants.SAVED_MODEL_PATH, MODEL_WEIGHTS),
                         help='iteration for smoothing') 
 my_parser.add_argument('--target_layer',
                         type=str, default='layer3',
                         help='cam layer for explanation') 
 my_parser.add_argument('--batchSize',
-                        type=int, default=256,
+                        type=int, default=32,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--lrpMode',
                         type=str, default='CLRP',
@@ -50,11 +50,16 @@ my_parser.add_argument('--dest_dir_name',
                         help='destination folder in google drive')                    
 args = my_parser.parse_args()
 
+print('Pickle Name: {}'.format(args.pickle_name))
+print('State Dict Path: {}'.format(args.state_dict_path))
+print('Target Layer: {}'.format(args.target_layer))
+print('Destination folder: {}'.format(args.dest_dir_name))
+
 
 # SCRIPT PARAMETERS
 # pt_name = 'skresnext50_32x4d_supCon_last_1layer' # fine tune with only one layer of the projection head in the classification model
 pt_name = args.pickle_name# 'skresnext50_32x4d_supCon_last_3Layers'
-pickel_name = './trained_models/{}'.format(pt_name) # NOTE: USE THE PRETRAIN ONE!
+pickel_name = args.state_dict_path # './trained_models/{}'.format(pt_name) # NOTE: USE THE PRETRAIN ONE!
 mode = args.target_layer # 'layer3'
 LRP_MODE = args.lrpMode
 
@@ -71,8 +76,8 @@ cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha
 
 model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
-if 'simclr' in pickel_name or 'supCon' in pickel_name:
-    if 'simclr' in pickel_name:
+if 'simclr' in pt_name or 'supCon' in pt_name:
+    if 'simclr' in pt_name:
         cam_name = cam_name + '-simclr'
     else:
         cam_name = cam_name + '-supCon'
@@ -88,14 +93,16 @@ if 'simclr' in pickel_name or 'supCon' in pickel_name:
         )
         cam_name +=  '-width3'
     else:
-        model.fc = Linear(model.fc.in_features, 2, device=torch.device('cpu')) 
+        model.fc = Linear(model.fc.in_features, 2, device=Constants.DEVICE) 
         cam_name += '-width1'  
 else:
-    model.fc = Linear(model.fc.in_features, 2, device=torch.device('cpu'))
+    model.fc = Linear(model.fc.in_features, 2, device=Constants.DEVICE)
     cam_name += '-vanillaPretrain-width1' 
 
 # load the trained weights
-model.load_state_dict(torch.load('./{}.pt'.format(pickel_name), map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(pickel_name, map_location=Constants.DEVICE))
+model.to(Constants.DEVICE)
+print('Model successfully loaded')
 
 if '3Layers' in pt_name:
     assert(model.fc[-1].out_features == 2)
@@ -158,7 +165,9 @@ for x, y in dataloader:
         img = x[i, :]
         img = np.swapaxes(img, 0, 2)
         img = np.swapaxes(img, 0, 1)
-        img = cv2.cvtColor(img.detach().numpy(), cv2.COLOR_BGR2RGB)
+        if Constants.WORK_ENV == 'COLAB':
+            img = img.cpu().detach().numpy()
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # save the original image in parallel
         if not os.path.exists(dest):
@@ -172,7 +181,10 @@ for x, y in dataloader:
         old_level = logger.level
         logger.setLevel(100)
 
-        r_cam = r_cams[i, :].reshape(size, size).detach().numpy()
+        if Constants.WORK_ENV == 'COLAB':
+            r_cam = r_cams[i, :].reshape(size, size).cpu().detach().numpy()
+        else:
+            r_cam = r_cams[i, :].reshape(size, size).detach().numpy()
         r_cam = cv2.resize(r_cam, (230, 230))
         mask = plt.imshow(r_cam, cmap='seismic')
         overlayed_image = plt.imshow(img, alpha=.5)

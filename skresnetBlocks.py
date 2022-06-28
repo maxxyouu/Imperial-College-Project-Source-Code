@@ -380,6 +380,7 @@ class SelectiveKernel(nn.Module):
             x_paths = [op(x_split[i]) for i, op in enumerate(self.paths)] # perform operation for each chunk of tensor
         else:
             x_paths = [op(x) for op in self.paths]
+        # [batch_size, paths, channels, width, height]
         x = torch.stack(x_paths, dim=1) # stack all the operated input, that's why you see the dim 2 in the tensor
         x_attn = self.attn(x)
         x = self.mul([x, x_attn]) #x * x_attn
@@ -388,19 +389,16 @@ class SelectiveKernel(nn.Module):
     
 
     def relprop(self, R, alpha):
-
+        #TODO: something when work with batch size
+        # def _unstack(_input):
+        #     return torch.cat(torch.unbind((_input).squeeze(0), dim=0)).unsqueeze(0)
         def _unstack(_input):
-            return torch.cat(torch.unbind((attn_out + out).squeeze(0), dim=0)).unsqueeze(0)
-
-        # out = self.sum.relprop(R, alpha)
-        # out, attn = self.mul.relprop(out, alpha)
-        # out = self.attn.relprop(out, alpha)
-
+            return torch.cat(torch.unbind(out, dim=1), dim=1)
         # NOTE: refer to the selective kernel diagram to do the LRP propagation
-        out = self.sum.relprop(R, dim=1)
+        out = self.sum.relprop(R, dim=1) # dim=2 as the number of paths
         out, attn = self.mul.relprop(out)
         attn_out = self.attn.relprop(attn, alpha)
-        out = _unstack(attn_out + out)
+        out = _unstack(attn_out + out) # [batch-size, paths, channels, width, height]
 
 
         # Handle the stack /splits/paths, the ones in nn.modulelist

@@ -210,7 +210,7 @@ if __name__ == '__main__':
     print('simclr: {}'.format(args.simClr))
     print('supCon: {}'.format(args.supCon))
     print('chkPointName: {}'.format(args.chkPointName))
-
+    print('model path: {}'.format(args.folderName))
 
     train_transforms, test_transforms = data_transformations()
 
@@ -221,11 +221,13 @@ if __name__ == '__main__':
 
     if args.simClr or args.supCon: # TODO
         if args.simClr:
-            clr_weight_path = Constants.SIMCLR_MODEL_PATH
+            assert('sim' in args.folderName)
+            clr_weight_path = Constants.SIMCLR_MODEL_PATH.format(args.folderName)
         elif args.supCon:
-            clr_weight_path = Constants.SUPCON_MODEL_PATH
+            assert('sup' in args.folderName)
+            clr_weight_path = Constants.SUPCON_MODEL_PATH.format(args.folderName)
         print(clr_weight_path)
-        assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d')
+        assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d' and args.folderName is not None)
         model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
         # load the skresnext model and replace the head with a appropriate one
         clr_model = SimClrSkResneXt(name=args.model) # with pretrained weight in the feature extractor

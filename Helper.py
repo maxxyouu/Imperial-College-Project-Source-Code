@@ -68,6 +68,9 @@ def extract_args():
     my_parser.add_argument('--supCon',
                             type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
                             help='for supCon task') 
+    my_parser.add_argument('--folderName',
+                            type=str, default=None, # example: ckpt_epoch_500
+                            help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 
     # Execute the parse_args() method
     args = my_parser.parse_args()                                              
     return args

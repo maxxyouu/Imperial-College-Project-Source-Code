@@ -129,10 +129,10 @@ if __name__ == '__main__':
 
             # save the overlayed-attention map with the cam name as a tag
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
-            # cam_name = '{}-{}layers'.format(args.cam, len(model_target_layer))
             cam_name = '{}-layers{}'.format(args.cam, args.layers)
             if args.positiveTarget is not None and not args.positiveTarget:
                 cam_name += '-negativeTarget'
+            
             plt.ioff()
 
             logger = logging.getLogger()

@@ -19,6 +19,7 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from utils import build_model_with_cfg, checkpoint_seq
 # from layers import AvgPool2dSame, create_classifier # create_attn
 from layers import *
+import Constants
 
 __all__ = ['ResNet', 'BasicBlock', 'Bottleneck']  # model_registry will add each entrypoint fn to this
 
@@ -568,7 +569,12 @@ class ResNet(nn.Module):
     def CLRP(self, x, maxindex = [None]):
         if maxindex == [None]:
             maxindex = torch.argmax(x, dim=1)
-        R = torch.ones(x.shape)#.cuda()
+        
+        if Constants.WORK_ENV == 'COLAB':
+            R = torch.ones(x.shape).cuda()
+        else:
+            R = torch.ones(x.shape)
+
         R /= -self.num_classes
         for i in range(R.size(0)):
             R[i, maxindex[i]] = 1

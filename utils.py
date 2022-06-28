@@ -2,7 +2,6 @@
 from copy import deepcopy
 import os
 import logging
-from tkinter import NONE
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url

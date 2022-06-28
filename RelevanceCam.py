@@ -68,7 +68,7 @@ CHOSEN_ALPHA = args.alpha # 2 # BETA = 1 # visually it is the best setting
 target_layer = mode
 target_class = None
 # cam_name = LRP_MODE + '-' + args.target_layer + '-alpha{}'.format(str(args.alpha))
-cam_name = pt_name[:-4] + '_' + args.target_layer + '_alpha{}'.format(str(args.alpha))
+cam_name = LRP_MODE + '_' + pt_name[:-4] + '_' + args.target_layer + '_alpha{}'.format(str(args.alpha))
 
 # create target result directory if not exists
 # RESULT_FOLDER_BASE_NAME = './results' + '_' + pt_name + '_alpha' + str(CHOSEN_ALPHA) #LRP_MODE

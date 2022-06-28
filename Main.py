@@ -221,10 +221,10 @@ if __name__ == '__main__':
 
     if args.simClr or args.supCon: # TODO
         if args.simClr:
-            assert('sim' in args.folderName)
+            assert('Sim' in args.folderName)
             clr_weight_path = Constants.SIMCLR_MODEL_PATH.format(args.folderName)
         elif args.supCon:
-            assert('sup' in args.folderName)
+            assert('Sup' in args.folderName)
             clr_weight_path = Constants.SUPCON_MODEL_PATH.format(args.folderName)
         print(clr_weight_path)
         assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d' and args.folderName is not None)

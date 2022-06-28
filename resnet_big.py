@@ -170,7 +170,7 @@ class LinearBatchNorm(nn.Module):
 
 class SimClrSkResneXt(nn.Module):
     """backbone + projection head"""
-    def __init__(self, name='skresnext50_32x4d', head='linear', feat_dim=64):
+    def __init__(self, name='skresnext50_32x4d', head='mlp', feat_dim=64):
         super(SimClrSkResneXt, self).__init__()
         model_fun, dim_in = model_dict[name]
         self.encoder = model_fun()

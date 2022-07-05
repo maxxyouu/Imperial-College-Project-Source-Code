@@ -164,8 +164,9 @@ for x, y in dataloader:
         dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', args.dest_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
 
         img = x[i, :]
-        img = np.swapaxes(img, 0, 2)
-        img = np.swapaxes(img, 0, 1)
+        # img = np.swapaxes(img, 0, 2) # 2, 1, 0
+        # img = np.swapaxes(img, 0, 1) # 1, 2, 0
+        img = np.transpose(img, (1,2,0))
         if Constants.WORK_ENV == 'COLAB':
             img = img.cpu().detach().numpy()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

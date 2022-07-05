@@ -6,6 +6,8 @@ additional dropout and dynamic global avg/max pool.
 ResNeXt, SE-ResNeXt, SENet, and MXNet Gluon stem/downsample variants, tiered stems added by Ross Wightman
 
 Copyright 2019, Ross Wightman
+
+Taken from SelectiveKernelImplementation
 """
 from copy import deepcopy
 import math
@@ -429,7 +431,7 @@ class ResNet(nn.Module):
             x = self.dropout(x)
         return x if pre_logits else self.fc(x)
 
-    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, alpha=1):
+    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, alpha=2):
         # x = self.forward_features(x)
         # z = self.forward_head(x)
         x_origin = deepcopy(x)
@@ -476,7 +478,7 @@ class ResNet(nn.Module):
         z = self.fc(x)
 
         if mode == 'output':
-            return z
+            return [],  z
         
         # handle CLRP
         if lrp == 'SGLRP':
@@ -539,7 +541,6 @@ class ResNet(nn.Module):
             R_bn = self.act1.relprop(R_act, alpha)
             R_conv1 = self.bn1.relprop(R_bn, alpha)
             R_input = self.conv1.relprop(R_conv1, alpha)
-
             
             for layer, r in zip([x_origin, conv1, bn1, act1, max_pooled_x], [R_input, R_conv1, R_bn,R_act ,R_pool]):
                 weight = torch.mean(r, dim=(2, 3), keepdim=True)

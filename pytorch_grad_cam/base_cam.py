@@ -73,7 +73,7 @@ class BaseCAM:
 
         outputs = self.activations_and_grads(input_tensor)
         if targets is None:
-            target_categories = np.argmax(outputs.cpu().data.numpy(), axis=-1)
+            target_categories = np.argmax(outputs.cpu().data.numpy() , axis=-1)
             # each input has a corresponding category in a list
             targets = [ClassifierOutputTarget(category) for category in target_categories]
             # negated_target_categories = [0  if c == 1 else 1 for c in target_categories]

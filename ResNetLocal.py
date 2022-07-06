@@ -479,12 +479,14 @@ class ResNet(nn.Module):
 
         if mode == 'output':
             return [],  z
+            # return z
+
         
         # handle CLRP
-        if lrp == 'SGLRP':
-            R = self.SGCLR(z, target_class)
-        else:
-            R = self.CLRP(z, target_class) # COMPUTE THE CLRP SCORE FOR A PARTICULAR CLASS
+        # if lrp == 'SGLRP':
+        #     R = self.SGCLR(z, target_class)
+        # else:
+        R = self.CLRP(z, target_class) # COMPUTE THE CLRP SCORE FOR A PARTICULAR CLASS
 
 
         # backpropagate the classifier

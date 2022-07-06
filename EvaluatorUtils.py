@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Callable
 import Constants
 import numpy as np
@@ -59,7 +60,7 @@ def get_explanation_map(exp_map: Callable, img, cam):
     explanation_map = torch.from_numpy(explanation_map)
     for i in range(explanation_map.shape[0]):
         inplace_normalize(explanation_map[i, :])
-    return explanation_map
+    return explanation_map.requires_grad_(True)
 
 def A_D():
     pass
@@ -69,4 +70,69 @@ def A_I():
 
 def m_A_I():
     pass
+
+
+class metrics_logger:
+    def __init__(self, metrics_initial) -> None:
+        self.metrics = metrics_initial
+        self.N = 0
+
+    def update(self, current, n):
+        self.N += n
+        self.metrics += current
+
+    @abstractmethod
+    def get_avg(self):
+        return NotImplementedError('metrics specific function, to be implemented')
+
+    @abstractmethod
+    def compute_and_update(self, Yci, Oci):
+        """Specific to a metrics"""
+        return NotImplementedError('metrics specific function, to be implemented')
+
+class Average_Drop_logger(metrics_logger):
+    def __init__(self, metrics_initial) -> None:
+        super().__init__(metrics_initial)
+
+    def get_avg(self):
+        return self.metrics * 100
+
+    def compute_and_update(self, Yci, Oci):
+        """metrics specific
+
+        Args:
+            Yci (numpy array): score for the original image(s)
+            Oci (numpy array): score for the explanation map(s)
+            assume Yci and Oci are of the same shape
+        """
+
+        # batch-wise percentage drop
+        percentage_drop = (Yci - Oci) / Yci
+        percentage_drop = np.maximum(percentage_drop, 0)
+        
+        # aggregate the batch statistics
+        batch_size = percentage_drop.shape[0]
+        batch_pd = np.sum(percentage_drop, axis=0)
+        super().update(batch_pd, batch_size)
+
+class Increase_Confidence_logger(metrics_logger):
+    def __init__(self, metrics_initial) -> None:
+        super().__init__(metrics_initial)
+
+    def compute_and_update(self, Yci, Oci):
+        """metrics specific
+
+        Args:
+            Yci (numpy array): score for the original image(s)
+            Oci (numpy array): score for the explanation map(s)
+            assume Yci and Oci are of the same shape
+        """
+        indicator = Yci < Oci
+        batch_size = indicator.shape[0]
+        # aggregate the batch statistics    
+        increase_in_confidence = np.sum(indicator, axis=0)
+        super().update(increase_in_confidence, batch_size)
+
+    def get_avg(self):
+        return self.metrics / self.N
 

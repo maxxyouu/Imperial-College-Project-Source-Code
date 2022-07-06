@@ -174,6 +174,7 @@ for x, y in dataloader:
     # collect metrics data
     ad_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
     ic_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
+    print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
 
     forward_handler.remove()
     backward_handler.remove()

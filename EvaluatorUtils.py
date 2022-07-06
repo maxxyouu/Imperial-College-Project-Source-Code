@@ -76,6 +76,7 @@ class metrics_logger:
     def __init__(self, metrics_initial) -> None:
         self.metrics = metrics_initial
         self.N = 0
+        self.current_metrics = metrics_initial
 
     def update(self, current, n):
         self.N += n
@@ -95,7 +96,7 @@ class Average_Drop_logger(metrics_logger):
         super().__init__(metrics_initial)
 
     def get_avg(self):
-        return self.metrics * 100
+        return self.metrics
 
     def compute_and_update(self, Yci, Oci):
         """metrics specific
@@ -113,6 +114,7 @@ class Average_Drop_logger(metrics_logger):
         # aggregate the batch statistics
         batch_size = percentage_drop.shape[0]
         batch_pd = np.sum(percentage_drop, axis=0)
+        self.current_metrics = batch_pd
         super().update(batch_pd, batch_size)
 
 class Increase_Confidence_logger(metrics_logger):
@@ -131,6 +133,7 @@ class Increase_Confidence_logger(metrics_logger):
         batch_size = indicator.shape[0]
         # aggregate the batch statistics    
         increase_in_confidence = np.sum(indicator, axis=0)
+        self.current_metrics = increase_in_confidence
         super().update(increase_in_confidence, batch_size)
 
     def get_avg(self):

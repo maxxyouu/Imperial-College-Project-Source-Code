@@ -157,13 +157,15 @@ for x, y in dataloader:
         print('Forward Passing the explanation images')
         img = denorm(x).detach().numpy()
         grayscale_cam = np.expand_dims(grayscale_cam, 1)
-        explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam)
+        explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         exp_scores = model_wrapper.model(explanation_map)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
 
         # collect metrics data
-        ad_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
-        ic_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
+        Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
+        Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
+        ad_logger.compute_and_update(Yci, Oci)
+        ic_logger.compute_and_update(Yci, Oci)
         print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
     else:
         # denormalize the image NOTE: must be placed after forward passing

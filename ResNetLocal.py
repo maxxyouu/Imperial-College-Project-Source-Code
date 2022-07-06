@@ -434,7 +434,7 @@ class ResNet(nn.Module):
     def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, alpha=2):
         # x = self.forward_features(x)
         # z = self.forward_head(x)
-        x_origin = deepcopy(x)
+        # x_origin = deepcopy(x)
         # Feature extractor
         conv1 = self.conv1(x)
         bn1 = self.bn1(conv1)
@@ -534,22 +534,22 @@ class ResNet(nn.Module):
                 r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
                 return [r_cam1], z
             _, r_cams = self.inner_layer_relprop(layer1s, self.layer1, R1, alpha=alpha) # NOTE:inspect the internal of the stage
-        else:
-            R3 = self.layer4.relprop(R4, alpha)
-            R2 = self.layer3.relprop(R3, alpha)
-            R1 = self.layer2.relprop(R2, alpha)
-            R_pool = self.layer1.relprop(R1, alpha)
-            R_act = self.maxpool.relprop(R_pool, alpha)
-            R_bn = self.act1.relprop(R_act, alpha)
-            R_conv1 = self.bn1.relprop(R_bn, alpha)
-            R_input = self.conv1.relprop(R_conv1, alpha)
+        # else:
+        #     R3 = self.layer4.relprop(R4, alpha)
+        #     R2 = self.layer3.relprop(R3, alpha)
+        #     R1 = self.layer2.relprop(R2, alpha)
+        #     R_pool = self.layer1.relprop(R1, alpha)
+        #     R_act = self.maxpool.relprop(R_pool, alpha)
+        #     R_bn = self.act1.relprop(R_act, alpha)
+        #     R_conv1 = self.bn1.relprop(R_bn, alpha)
+        #     R_input = self.conv1.relprop(R_conv1, alpha)
             
-            for layer, r in zip([x_origin, conv1, bn1, act1, max_pooled_x], [R_input, R_conv1, R_bn,R_act ,R_pool]):
-                weight = torch.mean(r, dim=(2, 3), keepdim=True)
-                r_cam = layer * weight
-                r_cam = torch.sum(r_cam, dim=(1), keepdim=True)
-                r_cams.append(r_cam.reshape(r.shape[-2], r.shape[-1]).detach().numpy())
-            # return r_cams, z
+        #     for layer, r in zip([x_origin, conv1, bn1, act1, max_pooled_x], [R_input, R_conv1, R_bn,R_act ,R_pool]):
+        #         weight = torch.mean(r, dim=(2, 3), keepdim=True)
+        #         r_cam = layer * weight
+        #         r_cam = torch.sum(r_cam, dim=(1), keepdim=True)
+        #         r_cams.append(r_cam.reshape(r.shape[-2], r.shape[-1]).detach().numpy())
+        #     # return r_cams, z
 
         return r_cams, z
     

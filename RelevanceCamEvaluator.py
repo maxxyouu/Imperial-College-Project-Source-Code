@@ -152,7 +152,8 @@ for x, y in dataloader:
 
             # get the corresponding explanation map
             cam = layer_explanations[i]
-            explanation_map = get_explanation_map(args.exp_map_func, img, cam)
+            explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+
 
             ## NOTE: FOR DEBUG
             # for j in range(cam.shape[0]):
@@ -166,14 +167,17 @@ for x, y in dataloader:
         Oci = torch.stack(layer_explanation_scores, dim=1)
 
     else:
-        explanation_map = get_explanation_map(args.exp_map_func, img, cam)
+        explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
         # compare the explanation score with the original score
 
     # collect metrics data
-    ad_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
-    ic_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
+    Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
+    Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
+
+    ad_logger.compute_and_update(Yci, Oci)
+    ic_logger.compute_and_update(Yci, Oci)
     print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
 
     forward_handler.remove()

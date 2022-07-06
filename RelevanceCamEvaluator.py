@@ -1,7 +1,7 @@
 """
 Script to compute the necessary metrics of a model
 A.D, A.I, Modified A.I, and segmentation
-TODO: Implement AD, AI, and accomodate other cam techniques
+TODO: Implement AD, AI,
 Target layer to be used is accor
 """
 
@@ -53,7 +53,7 @@ print('Model Name: {}'.format(args.model_name))
 print('Model Weight Destination: {}'.format(args.model_weights))
 print('Target Layer: {}'.format(args.target_layer))
 print('Batch Size: {}'.format(args.batch_size))
-args.evaluate_all_layers = True
+args.evaluate_all_layers = False
 print('Unbias Layer Selection: {}'.format(args.evaluate_all_layers))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
@@ -86,11 +86,9 @@ def forward_hook(module, input, output):
 def backward_hook(module, input, output):
     value['gradients'] = output[0]
 
-#TODO: Differentiating the ordinary model and the sk-version
-
 #Feed the data into the model
-data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data_transformers = transforms.Compose(
     [
@@ -136,12 +134,12 @@ for x, y in dataloader:
             _, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=2)
 
             layer_explanations.append(resize_cam(cams[0]))
-            Yci = Yci[range(args.batch_size), y].unsqueeze(1) # only care about the score for the true label
+            Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # only care about the score for the true label
         cam = layer_explanations[layer_idx_mapper[args.target_layer]] # retrieve the target layer according to the argument provided for the following code
     else:
         cams, Yci = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
         cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
-        Yci = Yci[range(args.batch_size), y].unsqueeze(1)
+        Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
 
     img = resize_img(deepcopy(denorm(x)))
     
@@ -163,14 +161,14 @@ for x, y in dataloader:
             #     plt.axis('off')
 
             _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=2)
-            layer_explanation_scores.append(exp_scores[range(args.batch_size), y]) # the corresponding label score (the anchor)
+            layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
         # [batch_size, layers]
         Oci = torch.stack(layer_explanation_scores, dim=1)
 
     else:
         explanation_map = get_explanation_map(args.exp_map_func, img, cam)
         _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
-        Oci = exp_scores[range(args.batch_size), y].unsqueeze(1)
+        Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
         # compare the explanation score with the original score
 
     # collect metrics data

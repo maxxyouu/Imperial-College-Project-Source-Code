@@ -103,7 +103,6 @@ if __name__ == '__main__':
 
         # generate cam attention map
         grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
-        # grayscale_cam = grayscale_cam.detach().cpu().numpy() # for using smoothing
 
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)
@@ -124,8 +123,9 @@ if __name__ == '__main__':
 
             # swap the axis so that the show_cam_on_image works
             img = x[i, :].cpu().detach().numpy()
-            img = np.swapaxes(img, 0, 2)
-            img = np.swapaxes(img, 0, 1)
+            img = np.transpose(img, (1,2,0))
+            # img = np.swapaxes(img, 0, 2)
+            # img = np.swapaxes(img, 0, 1)
 
             # save the overlayed-attention map with the cam name as a tag
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)

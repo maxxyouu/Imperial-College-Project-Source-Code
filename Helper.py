@@ -102,7 +102,7 @@ def extract_attention_cam_args():
                             type=int, default=4,
                             help='cam name for explanation') 
     my_parser.add_argument('--batchSize',
-                            type=int, default=256,
+                            type=int, default=2,
                             help='batch size to be used for training / testing') 
     my_parser.add_argument('--positiveTarget',
                             type=bool, action=argparse.BooleanOptionalAction,

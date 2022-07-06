@@ -1,3 +1,5 @@
+from email.policy import default
+from re import X
 from torchvision import transforms, datasets
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
@@ -11,7 +13,9 @@ import torch
 from PIL import Image
 import matplotlib.pyplot as plt
 import logging
-
+import argparse
+from Helper import *
+from EvaluatorUtils import *
 
 # local imports
 import Constants
@@ -61,49 +65,101 @@ def threshold(x):
     x = (x>thresh)
     return x
 
-if __name__ == '__main__':
+default_model_name = 'skresnext50_32x4d'
+my_parser = argparse.ArgumentParser(description='')
+my_parser.add_argument('--model',
+                        type=str, default=default_model_name,
+                        help='model to be used for training / testing') 
+my_parser.add_argument('--model_weights',
+                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
+                        help='Destination for the model weights') 
+my_parser.add_argument('--noiseSmooth',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='use noise for smoothing or not') 
+my_parser.add_argument('--iterations',
+                        type=int, default=50,
+                        help='iteration for smoothing') 
+my_parser.add_argument('--std',
+                        type=float, default=1.,
+                        help='noise level for smoothing') 
+my_parser.add_argument('--cam',
+                        type=str, default='xgradcam',
+                        help='cam name for explanation') 
+my_parser.add_argument('--layers',
+                        type=int, default=4,
+                        help='cam name for explanation') 
+my_parser.add_argument('--batchSize',
+                        type=int, default=3,
+                        help='batch size to be used for training / testing')  
+my_parser.add_argument('--run_mode',
+                        type=str, default='metrics',
+                        help='Metrics mode either "explanation" or "metrics"') 
+my_parser.add_argument('--exp_map_func',
+                        type=str, default='hard_threshold_explanation_map',
+                        help='match one of the function name') 
 
-    # get all mutual correct predictions
-    # find_mutual_correct_images(os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'))
+# 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
+args = my_parser.parse_args()
 
-    # need to manually modify the smooth parameters
-    args = extract_attention_cam_args()
+# print statement to verify the boolean arguments
+print('Noise Smooth Arg: {}'.format(args.noiseSmooth))
 
-    # print statement to verify the boolean arguments
-    print('Noise Smooth Arg: {}'.format(args.noiseSmooth))
-    print('Positive Target Arg: {}'.format(args.positiveTarget))
+# model_wrapper = get_trained_model(args.model)
+model_wrapper = switch_model(args.model, False)
+model_wrapper.load_learned_weights(args.model_weights)
+print('successfully load the model')
+model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input
+# model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
-    model_wrapper = get_trained_model(args.model)
-    model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input
-    # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
+model_dir_name = define_model_dir_path(args)
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
-    model_dir_name = define_model_dir_path(args)
-    data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-    data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
-        [
-            transforms.ToTensor(), # no need for the centercrop as it is at the cor
-            transforms.Normalize(
-                [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
-                [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
-        ]
-    ))
-    # for each image, it has a folder that store all the cam heatmaps
-    sequentialSampler = SequentialSampler(data)
-    dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
+    [
+        transforms.ToTensor(), # no need for the centercrop as it is at the cor
+        transforms.Normalize(
+            [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
+            [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
+    ]
+))
+# for each image, it has a folder that store all the cam heatmaps
+sequentialSampler = SequentialSampler(data)
+dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
 
-    image_order_book, img_index = data.imgs, 0
-    cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
+image_order_book, img_index = data.imgs, 0
+cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
+args.exp_map_func = eval(args.exp_map_func) # NOTE
 
-    for x, y in dataloader:
-        # NOTE: make sure i able index to the correct index
-        print('--------- Forward Passing {}'.format(args.cam))
-        x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        # decides the target being propagate
-        cam_targets = get_targets(args.positiveTarget)
+ad_logger = Average_Drop_logger(np.zeros((1,1)))
+ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
 
-        # generate cam attention map
-        grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
+for x, y in dataloader:
+    x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+    
+    # NOTE: make sure i able index to the correct index
+    print('--------- Forward Passing {}'.format(args.cam))
+    # generate batch-wise cam
+    cam_targets = None
+    grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
+    
+    if args.run_mode == 'metrics':
+        print('Forward Passing the original images')
+        Yci = model_wrapper.model(x)
+        Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
+        
+        print('Forward Passing the explanation images')
+        img = denorm(x).detach().numpy()
+        grayscale_cam = np.expand_dims(grayscale_cam, 1)
+        explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam)
+        exp_scores = model_wrapper.model(explanation_map)
+        Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
 
+        # collect metrics data
+        ad_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
+        ic_logger.compute_and_update(Yci.detach().numpy(), Oci.detach().numpy())
+        print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+    else:
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)
         
@@ -124,14 +180,10 @@ if __name__ == '__main__':
             # swap the axis so that the show_cam_on_image works
             img = x[i, :].cpu().detach().numpy()
             img = np.transpose(img, (1,2,0))
-            # img = np.swapaxes(img, 0, 2)
-            # img = np.swapaxes(img, 0, 1)
 
             # save the overlayed-attention map with the cam name as a tag
             attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
             cam_name = '{}-layers{}'.format(args.cam, args.layers)
-            if args.positiveTarget is not None and not args.positiveTarget:
-                cam_name += '-negativeTarget'
             
             plt.ioff()
 
@@ -159,3 +211,6 @@ if __name__ == '__main__':
 
             # update the sequential index for next iterations
             img_index += 1
+
+if args.run_mode == 'metrics':
+    print('Average Drop: {}; Average Increase: {}'.format(ad_logger.get_avg(), ic_logger.get_avg()))

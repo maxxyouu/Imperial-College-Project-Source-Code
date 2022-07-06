@@ -89,8 +89,8 @@ def backward_hook(module, input, output):
 #TODO: Differentiating the ordinary model and the sk-version
 
 #Feed the data into the model
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
+data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data_transformers = transforms.Compose(
     [

@@ -224,4 +224,4 @@ for x, y in dataloader:
             img_index += 1
 
 if args.run_mode == 'metrics':
-    print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))
+    print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))

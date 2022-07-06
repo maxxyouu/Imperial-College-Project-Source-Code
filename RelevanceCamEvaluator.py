@@ -32,10 +32,10 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer2',
+                        type=str, default='layer4',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
-                        type=int, default=3,
+                        type=int, default=4,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',

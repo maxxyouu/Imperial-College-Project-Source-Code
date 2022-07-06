@@ -62,15 +62,6 @@ def get_explanation_map(exp_map: Callable, img, cam):
         inplace_normalize(explanation_map[i, :])
     return explanation_map.requires_grad_(True)
 
-def A_D():
-    pass
-
-def A_I():
-    pass
-
-def m_A_I():
-    pass
-
 
 class metrics_logger:
     def __init__(self, metrics_initial) -> None:

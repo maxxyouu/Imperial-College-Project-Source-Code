@@ -86,7 +86,7 @@ my_parser.add_argument('--cam',
                         type=str, default='xgradcam',
                         help='cam name for explanation') 
 my_parser.add_argument('--layers',
-                        type=int, default=4,
+                        type=int, default=2,
                         help='cam name for explanation') 
 my_parser.add_argument('--batchSize',
                         type=int, default=3,
@@ -103,6 +103,12 @@ args = my_parser.parse_args()
 
 # print statement to verify the boolean arguments
 print('Noise Smooth Arg: {}'.format(args.noiseSmooth))
+print('Model Name: {}'.format(args.model))
+print('Model Weight Destination: {}'.format(args.model_weights))
+print('Target Layer: {}'.format(args.layers))
+print('Batch Size: {}'.format(args.batchSize))
+print('Explanation map style: {}'.format(args.exp_map_func))
+print('CAM: {}'.format(args.cam))
 
 # model_wrapper = get_trained_model(args.model)
 model_wrapper = switch_model(args.model, False)
@@ -112,8 +118,8 @@ model_target_layer = target_layers(model_wrapper.model, args.layers) # for scrip
 # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
 model_dir_name = define_model_dir_path(args)
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
+data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
     [
@@ -213,4 +219,4 @@ for x, y in dataloader:
             img_index += 1
 
 if args.run_mode == 'metrics':
-    print('Average Drop: {}; Average Increase: {}'.format(ad_logger.get_avg(), ic_logger.get_avg()))
+    print('Layer {};  Average Drop: {}; Average Increase: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))

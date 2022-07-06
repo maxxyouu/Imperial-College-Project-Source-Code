@@ -32,7 +32,7 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer3',
+                        type=str, default='layer2',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
                         type=int, default=3,
@@ -87,8 +87,8 @@ def backward_hook(module, input, output):
     value['gradients'] = output[0]
 
 #Feed the data into the model
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
+data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data_transformers = transforms.Compose(
     [
@@ -181,4 +181,5 @@ for x, y in dataloader:
     img_index += x.shape[0]
 
 # print the metrics results
-print('Average Drop: {}; Average Increase: {}'.format(ad_logger.get_avg(), ic_logger.get_avg()))
+# print('Average Drop/: {}; Average Increase: {}'.format(ad_logger.get_avg(), ic_logger.get_avg()))
+print('{};  Average Drop: {}; Average Increase: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))

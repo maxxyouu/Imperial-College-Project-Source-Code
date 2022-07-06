@@ -87,7 +87,7 @@ class Average_Drop_logger(metrics_logger):
         super().__init__(metrics_initial)
 
     def get_avg(self):
-        return self.metrics
+        return self.metrics * 100 / self.N
 
     def compute_and_update(self, Yci, Oci):
         """metrics specific
@@ -129,4 +129,3 @@ class Increase_Confidence_logger(metrics_logger):
 
     def get_avg(self):
         return self.metrics / self.N
-

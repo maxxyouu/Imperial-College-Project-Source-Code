@@ -129,3 +129,27 @@ class Increase_Confidence_logger(metrics_logger):
 
     def get_avg(self):
         return self.metrics / self.N
+
+class Average_Increase_logger(metrics_logger):
+    def __init__(self, metrics_initial) -> None:
+        super().__init__(metrics_initial)
+
+    def compute_and_update(self, Yci, Oci):
+        """metrics specific
+
+        Args:
+            Yci (numpy array): score for the original image(s)
+            Oci (numpy array): score for the explanation map(s)
+            assume Yci and Oci are of the same shape
+        """
+        indicator = Yci < Oci
+        batch_size = indicator.shape[0]
+        percentage_increase = (Oci[indicator] - Yci[indicator]) / Yci[indicator]
+        # aggregate the batch statistics    
+        batch_pi = np.sum(percentage_increase, axis=0)
+        self.current_metrics = batch_pi
+        super().update(batch_pi, batch_size)
+
+    def get_avg(self):
+        return self.metrics / self.N
+

@@ -139,6 +139,7 @@ args.exp_map_func = eval(args.exp_map_func) # NOTE
 
 ad_logger = Average_Drop_logger(np.zeros((1,1)))
 ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
+ai_logger = Average_Increase_logger(np.zeros((1, 1)))
 
 for x, y in dataloader:
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
@@ -155,7 +156,7 @@ for x, y in dataloader:
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
         
         print('Forward Passing the explanation images')
-        img = denorm(x).detach().numpy()
+        img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
         grayscale_cam = np.expand_dims(grayscale_cam, 1)
         explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         exp_scores = model_wrapper.model(explanation_map)
@@ -166,7 +167,9 @@ for x, y in dataloader:
         Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
         ad_logger.compute_and_update(Yci, Oci)
         ic_logger.compute_and_update(Yci, Oci)
-        print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+        ai_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.D: {}, I.C: {}, A.I: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics, ai_logger.current_metrics))
+
     else:
         # denormalize the image NOTE: must be placed after forward passing
         x = denorm(x)
@@ -186,7 +189,7 @@ for x, y in dataloader:
                 torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
 
             # swap the axis so that the show_cam_on_image works
-            img = x[i, :].cpu().detach().numpy()
+            img = x[i, :].cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else x[i, :].detach().numpy() 
             img = np.transpose(img, (1,2,0))
 
             # save the overlayed-attention map with the cam name as a tag
@@ -221,4 +224,4 @@ for x, y in dataloader:
             img_index += 1
 
 if args.run_mode == 'metrics':
-    print('Layer {};  Average Drop: {}; Average Increase: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
+    print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))

@@ -8,6 +8,7 @@ Target layer to be used is accor
 from cmath import e
 from copy import deepcopy
 import torch
+from torch.nn.functional import softmax
 import matplotlib.pyplot as plt
 import os
 from skresnet import skresnext50_32x4d
@@ -47,7 +48,7 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'Picture'), # example: ckpt_epoch_500
                         help='data directory')                        
 args = my_parser.parse_args()
 
@@ -138,16 +139,16 @@ for x, y in dataloader:
         layer_explanations = [] # each index location store a batch-size of cam explanation map
         for layer in layers:
             cams, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=2)
-            _, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=2)
-
+            Yci = softmax(Yci, dim=1)
             layer_explanations.append(resize_cam(cams[0]))
             Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # only care about the score for the true label
         cam = layer_explanations[layer_idx_mapper[args.target_layer]] # retrieve the target layer according to the argument provided for the following code
     else:
         cams, Yci = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
+        Yci = softmax(Yci, dim=1)
         cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
-
+    
     img = resize_img(deepcopy(denorm(x)))
     
     # explanation_map = preprocess_image(explanation_map) # transform the data
@@ -161,7 +162,6 @@ for x, y in dataloader:
             cam = layer_explanations[i]
             explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
 
-
             ## NOTE: FOR DEBUG
             # for j in range(cam.shape[0]):
             #     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')
@@ -169,6 +169,7 @@ for x, y in dataloader:
             #     plt.axis('off')
 
             _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=2)
+            exp_scores = softmax(exp_scores, dim=1)
             layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
         # [batch_size, layers]
         Oci = torch.stack(layer_explanation_scores, dim=1)
@@ -176,6 +177,7 @@ for x, y in dataloader:
     else:
         explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
+        exp_scores = softmax(exp_scores, dim=1)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
         # compare the explanation score with the original score
 

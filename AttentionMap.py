@@ -1,6 +1,7 @@
 from email.policy import default
 from re import X
 from torchvision import transforms, datasets
+from torch.nn.functional import softmax
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from torch.utils.data import DataLoader
@@ -157,6 +158,7 @@ for x, y in dataloader:
     if args.run_mode == 'metrics':
         print('Forward Passing the original images')
         Yci = model_wrapper.model(x)
+        Yci = softmax(Yci, dim=1)
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
         
         print('Forward Passing the explanation images')
@@ -164,6 +166,7 @@ for x, y in dataloader:
         grayscale_cam = np.expand_dims(grayscale_cam, 1)
         explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
         exp_scores = model_wrapper.model(explanation_map)
+        exp_scores = softmax(exp_scores, dim=1)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
 
         # collect metrics data

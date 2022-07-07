@@ -97,7 +97,9 @@ my_parser.add_argument('--run_mode',
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
                         help='match one of the function name') 
-
+my_parser.add_argument('--data_location',
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        help='data directory') 
 # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
 args = my_parser.parse_args()
 
@@ -109,6 +111,8 @@ print('Target Layer: {}'.format(args.layers))
 print('Batch Size: {}'.format(args.batchSize))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
+print('Data Location {}'.format(args.data_location))
+data_dir = args.data_location
 
 # model_wrapper = get_trained_model(args.model)
 model_wrapper = switch_model(args.model, False)
@@ -118,7 +122,7 @@ model_target_layer = target_layers(model_wrapper.model, args.layers) # for scrip
 # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
 model_dir_name = define_model_dir_path(args)
-data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
 # data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data = datasets.ImageFolder(data_dir, transform=transforms.Compose(

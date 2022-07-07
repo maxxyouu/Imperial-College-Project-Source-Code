@@ -105,7 +105,7 @@ class Average_Drop_logger(metrics_logger):
         # aggregate the batch statistics
         batch_size = percentage_drop.shape[0]
         batch_pd = np.sum(percentage_drop, axis=0)
-        self.current_metrics = batch_pd
+        self.current_metrics = batch_pd / batch_size
         super().update(batch_pd, batch_size)
 
 class Increase_Confidence_logger(metrics_logger):

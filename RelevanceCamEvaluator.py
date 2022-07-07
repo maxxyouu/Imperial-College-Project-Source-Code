@@ -45,7 +45,10 @@ my_parser.add_argument('--evaluate_all_layers',
                         help='average drop and increase in confidence metrics for each layer')
 my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
-                        help='select a cam')                        
+                        help='select a cam') 
+my_parser.add_argument('--data_location',
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        help='data directory')                        
 args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
@@ -57,6 +60,8 @@ args.evaluate_all_layers = False
 print('Unbias Layer Selection: {}'.format(args.evaluate_all_layers))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
+print('Data Location {}'.format(args.data_location))
+data_dir = args.data_location
 
 model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
@@ -87,8 +92,8 @@ def backward_hook(module, input, output):
     value['gradients'] = output[0]
 
 #Feed the data into the model
-data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
+# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
+# # data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data_transformers = transforms.Compose(
     [

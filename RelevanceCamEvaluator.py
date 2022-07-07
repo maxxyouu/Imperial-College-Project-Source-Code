@@ -48,8 +48,11 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'Picture'), # example: ckpt_epoch_500
-                        help='data directory')                        
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        help='data directory')   
+my_parser.add_argument('--alpha',
+                        type=int, default=2, # example: ckpt_epoch_500
+                        help='alpha for relevance cam')                        
 args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
@@ -61,6 +64,7 @@ args.evaluate_all_layers = False
 print('Unbias Layer Selection: {}'.format(args.evaluate_all_layers))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
+print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
 data_dir = args.data_location
 
@@ -138,13 +142,13 @@ for x, y in dataloader:
     if args.evaluate_all_layers:
         layer_explanations = [] # each index location store a batch-size of cam explanation map
         for layer in layers:
-            cams, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=2)
+            cams, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=args.alpha)
             Yci = softmax(Yci, dim=1)
             layer_explanations.append(resize_cam(cams[0]))
             Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # only care about the score for the true label
         cam = layer_explanations[layer_idx_mapper[args.target_layer]] # retrieve the target layer according to the argument provided for the following code
     else:
-        cams, Yci = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
+        cams, Yci = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
         Yci = softmax(Yci, dim=1)
         cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
@@ -168,7 +172,7 @@ for x, y in dataloader:
             #     plt.imshow(np.transpose(img[j,:], (1,2,0)), alpha=.5)
             #     plt.axis('off')
 
-            _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=2)
+            _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=args.alpha)
             exp_scores = softmax(exp_scores, dim=1)
             layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
         # [batch_size, layers]
@@ -176,7 +180,7 @@ for x, y in dataloader:
 
     else:
         explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=2)
+        _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
         exp_scores = softmax(exp_scores, dim=1)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
         # compare the explanation score with the original score

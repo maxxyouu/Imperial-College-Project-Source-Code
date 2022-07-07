@@ -87,7 +87,7 @@ class Average_Drop_logger(metrics_logger):
         super().__init__(metrics_initial)
 
     def get_avg(self):
-        return self.metrics * 100 / self.N
+        return self.metrics * 100 / self.N # softmax score, x100
 
     def compute_and_update(self, Yci, Oci):
         """metrics specific
@@ -105,7 +105,7 @@ class Average_Drop_logger(metrics_logger):
         # aggregate the batch statistics
         batch_size = percentage_drop.shape[0]
         batch_pd = np.sum(percentage_drop, axis=0)
-        self.current_metrics = batch_pd / batch_size
+        self.current_metrics = batch_pd
         super().update(batch_pd, batch_size)
 
 class Increase_Confidence_logger(metrics_logger):
@@ -128,7 +128,7 @@ class Increase_Confidence_logger(metrics_logger):
         super().update(increase_in_confidence, batch_size)
 
     def get_avg(self):
-        return self.metrics / self.N
+        return self.metrics * 100 / self.N # if using softmax score, x100
 
 class Average_Increase_logger(metrics_logger):
     def __init__(self, metrics_initial) -> None:

@@ -55,6 +55,12 @@ inplace_normalize = transforms.Normalize(
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD], inplace=True)
 
 def get_explanation_map(exp_map: Callable, img, cam):
+    """
+    Args:
+        exp_map (Callable): either hard_threshold_explanation_map or soft_explanation_map
+        img (tensor): _description_
+        cam (tensor): _description_
+    """
     # explanation_map = img*threshold(cam)
     explanation_map = exp_map(img, cam)
     explanation_map = torch.from_numpy(explanation_map)

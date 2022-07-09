@@ -1,3 +1,4 @@
+from fileinput import filename
 import numpy as np
 import os
 import sys
@@ -125,11 +126,13 @@ if __name__ == '__main__':
             patient_id = '0'
             frame = ids[0]
 
-        # meningioma 0-frame13
+        #NOTE: COPY THE ANNOTATED IMAGES TO THE CORRECT DESTINATION, meningioma 0-frame13
         img_source_path = os.path.join(img_source_folder, 'meningioma {}'.format(patient_id), 'meningioma {}-frame{}.jpg'.format(patient_id, frame))
-        img_dst_path = os.path.join(img_folder, 'meningioma {}-frame{}.jpg'.format(patient_id, frame)) # with '.png'
+        # img_dst_path = os.path.join(img_folder, 'meningioma {}-frame{}.jpg'.format(patient_id, frame)) # with '.png'
+        img_dst_path = os.path.join(img_folder, file_name) # with '.png'
         shutil.copy(img_source_path, img_dst_path)
         
+        #NOTE: SAVE THE SEGMENTATION MASKS
         mask = make_mask(np.zeros((img_height, img_width)), annotation)
-        save_path = os.path.join(out_folder, file_name[:-4]+'_index{}'.format(i))
+        save_path = os.path.join(out_folder, file_name[:-4]+' index{}'.format(i))
         np.save(save_path, mask)

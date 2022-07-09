@@ -60,8 +60,6 @@ my_parser.add_argument('--annotation_path',
                         help='path for the imge annotation')              
 args = my_parser.parse_args()
 
-
-
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
 print('Model Weight Destination: {}'.format(args.model_weights))
@@ -74,12 +72,13 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-if args.eval_segmentation is None:
-    args.eval_segmentation = False
-else:
-    #make sure in the correct data source location
-    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
-    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+# if args.eval_segmentation is None:
+#     args.eval_segmentation = False
+# else:
+#     #make sure in the correct data source location
+#     assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+#     assert(args.annotation_path == Constants.ANNOTATION_PATH)
+args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
@@ -193,10 +192,10 @@ def evaluate_model_metrics(x, args):
 
     forward_handler.remove()
     backward_handler.remove()
-    img_index += x.shape[0]
 
 
 def evaluate_segmentation_metrics(x, args):
+    r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
     
     return
 
@@ -206,9 +205,12 @@ for x, y in dataloader:
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
 
     if args.eval_segmentation:
-        pass
+        evaluate_segmentation_metrics(x, args)
     else:
         evaluate_model_metrics(x, args)
+    
+    img_index += x.shape[0]
+
 
 # print the metrics results
 print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))

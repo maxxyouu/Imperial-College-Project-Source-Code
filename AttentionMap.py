@@ -123,8 +123,6 @@ model_target_layer = target_layers(model_wrapper.model, args.layers) # for scrip
 # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
 
 model_dir_name = define_model_dir_path(args)
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
 
 data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
     [

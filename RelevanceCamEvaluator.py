@@ -127,7 +127,6 @@ image_order_book, img_index = data.imgs, 0
 layers = ['layer1', 'layer2', 'layer3', 'layer4']
 layer_idx_mapper = {'layer1': 0, 'layer2': 1, 'layer3': 2, 'layer4': 3}
 
-
 forward_handler = target_layer.register_forward_hook(forward_hook)
 backward_handler = target_layer.register_backward_hook(backward_hook)
 print('Registered Hooks')
@@ -174,11 +173,6 @@ for x, y in dataloader:
             explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
 
             ## NOTE: FOR DEBUG
-            # for j in range(cam.shape[0]):
-            #     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')
-            #     plt.imshow(np.transpose(img[j,:], (1,2,0)), alpha=.5)
-            #     plt.axis('off')
-
             _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=args.alpha)
             exp_scores = softmax(exp_scores, dim=1)
             layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
@@ -198,11 +192,17 @@ for x, y in dataloader:
 
     ad_logger.compute_and_update(Yci, Oci)
     ic_logger.compute_and_update(Yci, Oci)
-    print('Progress: A.D: {}, I.C: {}, A.I: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics, ai_logger.current_metrics))
+    print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
 
     forward_handler.remove()
     backward_handler.remove()
     img_index += x.shape[0]
 
 # print the metrics results
-print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))
+print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
+
+
+# for j in range(cam.shape[0]):
+#     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')
+#     plt.imshow(np.transpose(img[j,:], (1,2,0)), alpha=.5)
+#     plt.axis('off')

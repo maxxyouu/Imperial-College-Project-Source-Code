@@ -36,7 +36,7 @@ my_parser.add_argument('--target_layer',
                         type=str, default='layer3',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
-                        type=int, default=1,
+                        type=int, default=3,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
@@ -73,7 +73,7 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-# args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
 if args.eval_segmentation is None:
     args.eval_segmentation = False
 else:
@@ -211,7 +211,6 @@ def evaluate_segmentation_metrics(x, annotations, args):
     r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
     cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)
-
     # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')
     # plt.imshow(np.transpose(denorm(x[0,:]), (1,2,0)), alpha=.5)
     #NOTE: we might want to igore the one that is wrongly classified.
@@ -225,6 +224,11 @@ def evaluate_segmentation_metrics(x, annotations, args):
         batch_aggregated_masks.append(aggregateds_mask)
 
     batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
+    
+    # only take into account the correctly predicted images
+    correct_predict_index = (torch.argmax(logit_scores, dim=1) == 1).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else (torch.argmax(logit_scores, dim=1) == 1).detach().numpy()
+    batch_aggregated_masks = batch_aggregated_masks[correct_predict_index]
+    batch_cam_mask = batch_cam_mask[correct_predict_index]
     
     # Intersection over Union
     overlap = batch_cam_mask * batch_aggregated_masks

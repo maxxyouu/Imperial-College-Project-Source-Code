@@ -96,10 +96,6 @@ def forward_hook(module, input, output):
 def backward_hook(module, input, output):
     value['gradients'] = output[0]
 
-#Feed the data into the model
-# data_dir = os.path.join(Constants.STORAGE_PATH, 'mutual_corrects')
-# # data_dir = os.path.join(Constants.STORAGE_PATH, 'picture')
-
 data_transformers = transforms.Compose(
     [
         transforms.ToTensor(), # no need for the centercrop as it is at the cor
@@ -126,14 +122,11 @@ args.exp_map_func = eval(args.exp_map_func)
 if args.evaluate_all_layers:
     ad_logger = Average_Drop_logger(np.zeros((1, 4)))
     ic_logger = Increase_Confidence_logger(np.zeros((1, 4)))
-    ai_logger = Average_Increase_logger(np.zeros((1, 4)))
 else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
     ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
-    ai_logger = Average_Increase_logger(np.zeros((1, 1)))
 
 for x, y in dataloader:
-    # sample_name = image_order_book[img_index][0].split('/')[-1]
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing the Original Data ------------')
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
@@ -191,7 +184,6 @@ for x, y in dataloader:
 
     ad_logger.compute_and_update(Yci, Oci)
     ic_logger.compute_and_update(Yci, Oci)
-    ai_logger.compute_and_update(Yci, Oci)
     print('Progress: A.D: {}, I.C: {}, A.I: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics, ai_logger.current_metrics))
 
     forward_handler.remove()
@@ -199,5 +191,4 @@ for x, y in dataloader:
     img_index += x.shape[0]
 
 # print the metrics results
-# print('Average Drop/: {}; Average Increase: {}'.format(ad_logger.get_avg(), ic_logger.get_avg()))
 print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))

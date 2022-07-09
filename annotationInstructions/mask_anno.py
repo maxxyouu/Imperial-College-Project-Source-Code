@@ -6,6 +6,7 @@ import pandas as pd
 import json
 import cv2
 import numpy as np
+import shutil
 
 def scale(img):
     """
@@ -20,27 +21,22 @@ def make_mask(img, anno):
     """
     make mask from annoatations
     """
-    H, W = img.shape
-    N = len(anno)
-    n = 0
-    for idx, row in anno.iterrows():
-        # segmentation
-        seg = list(map(int, row.segmentation[0]))
-        # number of points
-        N_p = len(seg)
-        # x's from list
-        x, y = [], []
-        # append x's and y's
-        for idx, p in enumerate(seg):
-            if idx%2==0:
-                x.append(p)
-            else:
-                y.append(p)
-        # points for poly
-        points = np.array(list(zip(x,y)))
-        # fill convex hull
-        cv2.fillConvexPoly(img, points=points, color=255)
-        n+=1
+    # segmentation
+    assert(len(anno['segmentation']) == 1)
+    seg = list(map(int, anno['segmentation'][0])) # convert the floating point to integer and back to list
+
+    # x's from list
+    x, y = [], []
+    # append x's and y's
+    for idx, p in enumerate(seg):
+        if idx%2==0:
+            x.append(p)
+        else:
+            y.append(p)
+    # points for poly
+    points = np.array(list(zip(x,y)))
+    # fill convex hull
+    cv2.fillConvexPoly(img, points=points, color=255)
     blur = scale(cv2.GaussianBlur(img,(55,55),0))
     return(blur)
 
@@ -98,65 +94,42 @@ def load_json(fp):
         f.close()
     return(data)
 
-def run(df, anno_map, out_folder):
-    """
-    load image apply annotations and create mask
-    """
-    # convert name of video and slice to annotation name
-    df['anno_name'] = df['name_video'].apply(lambda x: x.replace(' ', '').strip())+'_'+df['n_slice'].astype(str)+'.png'
-    for idx, row in df.iterrows():
-        # out_file for dataloader
-        save_path = os.path.join(out_folder, row.name_frame.replace(' ','')[:-3]+'npy')
-        df.loc[idx, 'anno_filepath'] = save_path
-        # if annotations exist in map
-        if anno_map[row.label]:
-            # get correct dataframes
-            anno_dfs = anno_map[row.label]
-            # images df
-            images = anno_dfs['images']
-            # annotation df
-            anno = anno_dfs['anno']
-            # file id for annotations
-            file_id = images[images['file_name']==row.anno_name]
-            if len(file_id)==0:
-                df.loc[idx, 'bool_anno'] = 0
-                mask = np.zeros((row.height, row.width))
-            else:
-                df.loc[idx, 'bool_anno'] = 1
-                assert len(file_id['id'].values)==1
-                file_id = file_id['id'].values[0]
-                # get anno
-                image_anno = anno[anno['image_id']==file_id]
-                mask = make_mask(np.zeros((row.height, row.width)), image_anno)
-        else:
-            # if no annotation
-            df.loc[idx, 'bool_anno'] = 0
-            mask = np.zeros((row.height, row.width))
-        # save anno
-        np.save(save_path, mask)
-    return(df)
-
 if __name__ == '__main__':
-    df_path = './input/ex-vivo-split/split.csv'
-    out_folder = './input/ex-vivo-anno/'
-    os.makedirs(out_folder)
-    df = pd.read_csv(df_path)
+
+    out_folder = '../MNG_annotations'
+    img_source_folder = '../../dataset/cleanFrames/'
+
     # annotations stores
-    MNG_GBM_anno = load_json('/media/alfie/Storage/Clinical_Data/pCLE/cleopatra/ex-vivo/GBM_meningioma_annotations/labels_annotations-all-final_2022-02-23-09-43-09.json')
-    ductal_anno = load_json('/media/alfie/Storage/Clinical_Data/pCLE/cleopatra/ex-vivo/ductal_annotations/labels_ductal-metastasis-_2022-03-28-01-06-30.json')
+    MNG_GBM_anno = load_json('../MNG_annotations/labels_annotations-all-final_2022-02-23-09-43-09.json')
     # annotation map
     anno_map = {
         'meningioma': {
-            'images': pd.DataFrame(MNG_GBM_anno['images']),
-            'anno': pd.DataFrame(MNG_GBM_anno['annotations'])
-            },
-        'ductal_metastasis': {
-            'images': pd.DataFrame(ductal_anno['images']),
-            'anno': pd.DataFrame(ductal_anno['annotations'])
-            },
-        'glioblastoma': None
+            'images': MNG_GBM_anno['images'],
+            'anno': MNG_GBM_anno['annotations']
+            }
     }
-    # run
-    df = run(df, anno_map, out_folder)
-    # save df
-    df.to_csv(df_path, index=False)
+    img_folder = '../MNG_annotations/annotated_imgs'
+    for i, annotation in enumerate(anno_map['meningioma']['anno']):
+        image_id = annotation['image_id']
+        img_json = anno_map['meningioma']['images'][image_id - 1]
+        # sanity check
+        assert(img_json['id'] == image_id)
+        
+        img_height, img_width, file_name = img_json['height'], img_json['width'], img_json['file_name']
+
+        # retrive the file
+        ids = file_name[:-4][len('meningioma'):].split('_')
+        if len(ids) == 2:
+            patient_id, frame = ids
+        else:
+            patient_id = '0'
+            frame = ids[0]
+
+        # meningioma 0-frame13
+        img_source_path = os.path.join(img_source_folder, 'meningioma {}'.format(patient_id), 'meningioma {}-frame{}.jpg'.format(patient_id, frame))
+        img_dst_path = os.path.join(img_folder, 'meningioma {}-frame{}.jpg'.format(patient_id, frame)) # with '.png'
+        shutil.copy(img_source_path, img_dst_path)
+        
+        mask = make_mask(np.zeros((img_height, img_width)), annotation)
+        save_path = os.path.join(out_folder, file_name[:-4]+'_index{}'.format(i))
+        np.save(save_path, mask)

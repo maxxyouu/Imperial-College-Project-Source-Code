@@ -51,7 +51,7 @@ my_parser.add_argument('--data_location',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
                         help='data directory')   
 my_parser.add_argument('--alpha',
-                        type=int, default=2, # example: ckpt_epoch_500
+                        type=float, default=2, # example: ckpt_epoch_500
                         help='alpha for relevance cam')                        
 args = my_parser.parse_args()
 

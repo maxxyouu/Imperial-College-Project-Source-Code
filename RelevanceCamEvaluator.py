@@ -7,6 +7,7 @@ Target layer to be used is accor
 
 from ast import Constant
 from copy import deepcopy
+import enum
 import torch
 from torch.nn.functional import softmax
 import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ my_parser.add_argument('--target_layer',
                         type=str, default='layer3',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
-                        type=int, default=4,
+                        type=int, default=1,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
@@ -72,7 +73,7 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-# args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
 if args.eval_segmentation is None:
     args.eval_segmentation = False
 else:
@@ -221,8 +222,6 @@ def evaluate_segmentation_metrics(x, annotations, args):
         aggregateds_mask = aggregateds_mask.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
         # plt.imshow(aggregateds_mask)
         # plt.imshow(batch_cam_mask[0,:])
-        # mask = plt.imshow(r_cam, cmap='seismic')
-        # overlayed_image = plt.imshow(img, alpha=.5)
         batch_aggregated_masks.append(aggregateds_mask)
 
     batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
@@ -233,13 +232,14 @@ def evaluate_segmentation_metrics(x, annotations, args):
     iou_logger.update(overlap.sum(), union.sum())
     print('current iou: {}'.format(iou_logger.current_iou))
 
-for x, y in dataloader:
+for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing the Original Data ------------')
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
     if args.eval_segmentation:
         # get the segmentation annotations using the img names in a batch
-        img_names = [image_order_book[i][0].split('/')[-1] for i in range(x.shape[0])]
+
+        img_names = [image_order_book[img_index + k][0].split('/')[-1] for k in range(x.shape[0])]
         batch_annotations = [] # list of list of annotation
         for name in img_names:
             per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))

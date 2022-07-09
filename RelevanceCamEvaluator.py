@@ -73,7 +73,7 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+# args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
 if args.eval_segmentation is None:
     args.eval_segmentation = False
 else:

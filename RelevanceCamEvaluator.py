@@ -140,11 +140,8 @@ else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
     ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
 
-for x, y in dataloader:
-    # NOTE: make sure i able index to the correct index
-    print('--------- Forward Passing the Original Data ------------')
-    x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
 
+def evaluate_model_metrics(x, args):
     Yci = None
     if args.evaluate_all_layers:
         layer_explanations = [] # each index location store a batch-size of cam explanation map
@@ -197,6 +194,21 @@ for x, y in dataloader:
     forward_handler.remove()
     backward_handler.remove()
     img_index += x.shape[0]
+
+
+def evaluate_segmentation_metrics(x, args):
+    
+    return
+
+for x, y in dataloader:
+    # NOTE: make sure i able index to the correct index
+    print('--------- Forward Passing the Original Data ------------')
+    x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+
+    if args.eval_segmentation:
+        pass
+    else:
+        evaluate_model_metrics(x, args)
 
 # print the metrics results
 print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))

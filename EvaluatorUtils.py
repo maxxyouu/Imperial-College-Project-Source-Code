@@ -88,6 +88,19 @@ class metrics_logger:
         """Specific to a metrics"""
         return NotImplementedError('metrics specific function, to be implemented')
 
+class IOU_logger:
+    def __init__(self, metrics_initial) -> None:
+        self.overlap = 0
+        self.union = 0
+        self.current_iou = 0
+    def get_avg(self):
+        return self.overlap / self.union
+
+    def update(self, overlap, union):
+        self.current_iou = overlap / union
+        self.overlap += overlap
+        self.union += union
+
 class Average_Drop_logger(metrics_logger):
     def __init__(self, metrics_initial) -> None:
         super().__init__(metrics_initial)

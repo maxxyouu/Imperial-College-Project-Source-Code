@@ -1,4 +1,3 @@
-from fileinput import filename
 import numpy as np
 import os
 import sys
@@ -8,6 +7,7 @@ import json
 import cv2
 import numpy as np
 import shutil
+from PIL import Image
 
 def scale(img):
     """
@@ -37,9 +37,16 @@ def make_mask(img, anno):
     # points for poly
     points = np.array(list(zip(x,y)))
     # fill convex hull
-    cv2.fillConvexPoly(img, points=points, color=255)
-    blur = scale(cv2.GaussianBlur(img,(55,55),0))
-    return(blur)
+    mask = np.zeros_like(img)
+    cv2.fillConvexPoly(mask, points=points, color=255)
+    return mask
+
+    # cv2.fillConvexPoly(img, points=points, color=255)
+    # blur = scale(cv2.GaussianBlur(img,(55,55),0))
+    # NOTE: THE FOLLOWING ARE FOR DEBUGGING
+    # img = Image.fromarray(np.uint8(mask), 'L')
+    # img.show()
+    # return blur
 
 
 def add_polygon(img, anno):
@@ -97,7 +104,7 @@ def load_json(fp):
 
 if __name__ == '__main__':
 
-    out_folder = '../MNG_annotations'
+    out_folder = '../MNG_annotations/annotations'
     img_source_folder = '../../dataset/cleanFrames/'
 
     # annotations stores
@@ -109,7 +116,7 @@ if __name__ == '__main__':
             'anno': MNG_GBM_anno['annotations']
             }
     }
-    img_folder = '../MNG_annotations/annotated_imgs'
+    img_folder = '../MNG_annotations/annotated_imgs/1/'
     for i, annotation in enumerate(anno_map['meningioma']['anno']):
         image_id = annotation['image_id']
         img_json = anno_map['meningioma']['images'][image_id - 1]

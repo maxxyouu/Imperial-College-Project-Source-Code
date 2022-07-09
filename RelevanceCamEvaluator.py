@@ -5,7 +5,9 @@ TODO: Implement AD, AI,
 Target layer to be used is accor
 """
 
+from ast import Constant
 from copy import deepcopy
+from turtle import xcor
 import torch
 from torch.nn.functional import softmax
 import matplotlib.pyplot as plt
@@ -32,7 +34,7 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer4',
+                        type=str, default='layer3',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
                         type=int, default=4,
@@ -47,7 +49,7 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
                         help='data directory')   
 my_parser.add_argument('--alpha',
                         type=float, default=2, # example: ckpt_epoch_500
@@ -72,13 +74,14 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-# if args.eval_segmentation is None:
-#     args.eval_segmentation = False
-# else:
-#     #make sure in the correct data source location
-#     assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
-#     assert(args.annotation_path == Constants.ANNOTATION_PATH)
-args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+# args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+if args.eval_segmentation is None:
+    args.eval_segmentation = False
+else:
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+    annotation_file_list = os.listdir(args.annotation_path)
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
@@ -113,6 +116,7 @@ def backward_hook(module, input, output):
 data_transformers = transforms.Compose(
     [
         transforms.ToTensor(), # no need for the centercrop as it is at the cor
+        transforms.CenterCrop(230),
         transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
@@ -138,6 +142,7 @@ if args.evaluate_all_layers:
 else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
     ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
+    iou_logger = IOU_logger(0)
 
 
 def evaluate_model_metrics(x, args):
@@ -194,18 +199,55 @@ def evaluate_model_metrics(x, args):
     backward_handler.remove()
 
 
-def evaluate_segmentation_metrics(x, args):
+def evaluate_segmentation_metrics(x, annotations, args):
+    """using intersectin over union as a metric to evaluate the segmentation performance
+
+    Args:
+        x (tensor): tensor in a device
+        img_name (_type_): the image with suffix
+        annotations (list of list): list of annotation paths (can be more than 1 annoataion for the same imge)
+        args (dicts): user input for the script
+    """
+    centerCrop = transforms.CenterCrop(230)
     r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
+    cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
+    batch_cam_mask = threshold(cam).squeeze(1)
+
+    # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')
+    # plt.imshow(np.transpose(denorm(x[0,:]), (1,2,0)), alpha=.5)
+    #NOTE: we might want to igore the one that is wrongly classified.
+    batch_aggregated_masks = []
+    for per_img_annotation in annotations:
+        loaded_npy_masks = [centerCrop(torch.tensor(np.load(a) // 255, device=Constants.DEVICE, dtype=torch.long)) for a in per_img_annotation] # convert to tensor and center crop
+        aggregateds_mask = torch.sum(torch.stack(loaded_npy_masks, dim=0), dim=0)
+        aggregateds_mask = aggregateds_mask.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
+        # plt.imshow(aggregateds_mask)
+        # plt.imshow(batch_cam_mask[0,:])
+        # mask = plt.imshow(r_cam, cmap='seismic')
+        # overlayed_image = plt.imshow(img, alpha=.5)
+        batch_aggregated_masks.append(aggregateds_mask)
+
+    batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
     
-    return
+    # Intersection over Union
+    overlap = batch_cam_mask * batch_aggregated_masks
+    union = batch_cam_mask + batch_aggregated_masks
+    iou_logger.update(overlap.sum(), union.sum())
+    print('current iou: {}'.format(iou_logger.current_iou))
 
 for x, y in dataloader:
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing the Original Data ------------')
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-
     if args.eval_segmentation:
-        evaluate_segmentation_metrics(x, args)
+        # get the segmentation annotations using the img names in a batch
+        img_names = [image_order_book[i][0].split('/')[-1] for i in range(x.shape[0])]
+        batch_annotations = [] # list of list of annotation
+        for name in img_names:
+            per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))
+            per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]
+            batch_annotations.append(per_img_annotations)
+        evaluate_segmentation_metrics(x, batch_annotations, args)
     else:
         evaluate_model_metrics(x, args)
     
@@ -213,8 +255,10 @@ for x, y in dataloader:
 
 
 # print the metrics results
-print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
-
+if not args.eval_segmentation:
+    print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
+else:
+    print('{}, IoU: {}'.format(args.target_layer, iou_logger.get_avg()))
 
 # for j in range(cam.shape[0]):
 #     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')

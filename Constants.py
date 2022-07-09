@@ -15,12 +15,16 @@ STORAGE_PATH = './'
 SAVED_MODEL_PATH = './trained_models'
 SIMCLR_MODEL_PATH = ''
 SUPCON_MODEL_PATH = ''
+ANNOTATED_IMG_PATH = './MNG_annotations/annotated_imgs'
+ANNOTATION_PATH = './MNG_annotations/annotations'
 if WORK_ENV == 'COLAB':
     DATA_PARENT_PATH = '/content/drive/MyDrive/CLEdata/'
     STORAGE_PATH = '/content/drive/MyDrive/'
     SAVED_MODEL_PATH = '/content/drive/MyDrive/trained_models'
     SIMCLR_MODEL_PATH = 'SupCon_models/path_models/{}'
     SUPCON_MODEL_PATH = 'SupCon_models/path_models/{}'
+    ANNOTATED_IMG_PATH = '/content/drive/Othercomputers/My MacBook Pro/MNG_annotations/annotated_imgs'
+    ANNOTATION_PATH = '/content/drive/Othercomputers/My MacBook Pro/MNG_annotations/annotations'
 DATA_MEAN = 0.1496
 DATA_STD = 0.1960
 

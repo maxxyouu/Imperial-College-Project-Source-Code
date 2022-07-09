@@ -5,7 +5,6 @@ TODO: Implement AD, AI,
 Target layer to be used is accor
 """
 
-from cmath import e
 from copy import deepcopy
 import torch
 from torch.nn.functional import softmax
@@ -52,20 +51,36 @@ my_parser.add_argument('--data_location',
                         help='data directory')   
 my_parser.add_argument('--alpha',
                         type=float, default=2, # example: ckpt_epoch_500
-                        help='alpha for relevance cam')                        
+                        help='alpha for relevance cam')          
+my_parser.add_argument('--eval_segmentation',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='true indicate evaluate the segmentation performance of the cam method')
+my_parser.add_argument('--annotation_path',
+                        type=str, default=Constants.ANNOTATION_PATH,
+                        help='path for the imge annotation')              
 args = my_parser.parse_args()
+
+
 
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
 print('Model Weight Destination: {}'.format(args.model_weights))
 print('Target Layer: {}'.format(args.target_layer))
 print('Batch Size: {}'.format(args.batch_size))
-args.evaluate_all_layers = False
+if args.evaluate_all_layers is None:
+    args.evaluate_all_layers = False
 print('Unbias Layer Selection: {}'.format(args.evaluate_all_layers))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
+if args.eval_segmentation is None:
+    args.eval_segmentation = False
+else:
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
 model = skresnext50_32x4d(pretrained=False).eval()
@@ -147,7 +162,6 @@ for x, y in dataloader:
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
     
     img = resize_img(deepcopy(denorm(x)))
-    
     # explanation_map = preprocess_image(explanation_map) # transform the data
     print('--------- Forward Passing the Explanation Maps ------------')
     if args.evaluate_all_layers:

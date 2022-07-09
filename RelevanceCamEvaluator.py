@@ -7,7 +7,6 @@ Target layer to be used is accor
 
 from ast import Constant
 from copy import deepcopy
-from turtle import xcor
 import torch
 from torch.nn.functional import softmax
 import matplotlib.pyplot as plt
@@ -22,7 +21,6 @@ from torchvision import transforms, datasets
 from torch.utils.data.sampler import SequentialSampler
 from Helper import denorm
 from EvaluatorUtils import *
-import logging
 from PIL import Image
 
 default_model_name = 'skresnext50_32x4d'

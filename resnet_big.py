@@ -187,13 +187,13 @@ class SimClrSkResneXt(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.Linear(dim_in // 4, feat_dim)
             )
-            self.head = nn.Sequential(
-                nn.Linear(dim_in, dim_in),
-                nn.ReLU(inplace=True),
-                nn.Linear(dim_in, dim_in),
-                nn.ReLU(inplace=True),
-                nn.Linear(dim_in, feat_dim)
-            )
+            # self.head = nn.Sequential(
+            #     nn.Linear(dim_in, dim_in),
+            #     nn.ReLU(inplace=True),
+            #     nn.Linear(dim_in, dim_in),
+            #     nn.ReLU(inplace=True),
+            #     nn.Linear(dim_in, feat_dim)
+            # )
         elif head == 'linear':
             self.head = nn.Linear(dim_in, feat_dim)
         else:

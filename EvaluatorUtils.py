@@ -164,27 +164,24 @@ class Increase_Confidence_logger(metrics_logger):
         return self.metrics * 100 / self.N # if using softmax score, x100
 
 
-class Average_confidence_logger(metrics_logger):
+class Average_confidence_logger():
     """ 
+    Refer to the layerCAM paper table VI
     must be companied by hard inverse threshold
-    TODO: TO BE IMPLEMENTED ORIGINAL SCORE - SCORE AFTER REMOVING THE SALIENCY REGIONS, THE HIGHER THE BETTER
-    The higher the better
     """
-    def __init__(self, metrics_initial) -> None:
-        super().__init__(metrics_initial)
+    def __init__(self) -> None:
+        self.true_score_avg = 0
+        self.occluded_score_avg = 0
+        self.N = 0
     
     def compute_and_update(self, Yci, Oci):
-        # batch-wise percentage drop
-        percentage_drop = (Yci - Oci) / Yci
-        # percentage_drop = np.maximum(percentage_drop, 0) # NOTE: if it is negative, worse off the performance
+        self.true_score_avg += (Yci * 100)
+        self.occluded_score_avg += (Oci * 100)
+        assert(Yci.shape == Oci.shape)
+        self.N += Yci.shape[0]
         
-        # aggregate the batch statistics
-        batch_size = percentage_drop.shape[0]
-        batch_pd = np.sum(percentage_drop, axis=0)
-        self.current_metrics = batch_pd
-        super().update(batch_pd, batch_size)
 
     def get_avg(self):
-        return self.metrics * 100 / self.N # if using softmax score, x100
+        return (self.true_score_avg / self.N, self.occluded_score_avg / self.N) # if using softmax score, x100
 
 

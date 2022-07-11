@@ -98,9 +98,10 @@ def parse_option():
     for it in iterations:
         opt.lr_decay_epochs.append(int(it))
 
-    opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}_{}_{}'.\
-        format(opt.method, opt.dataset, opt.model, opt.learning_rate,
-               opt.weight_decay, opt.batch_size, opt.temp, opt.trial, opt.feat_dim, opt.head_type)
+    # opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}_{}_{}'.\
+    #     format(opt.method, opt.dataset, opt.model, opt.learning_rate,
+    #            opt.weight_decay, opt.batch_size, opt.temp, opt.trial, opt.feat_dim, opt.head_type)
+    opt.model_name = '{}_{}_{}_featDim{}_{}_cropSize{}'.format(opt.method, opt.dataset, opt.model, opt.feat_dim, opt.head_type, opt.size)
 
     if opt.cosine:
         opt.model_name = '{}_cosine'.format(opt.model_name)

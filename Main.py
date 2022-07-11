@@ -236,6 +236,13 @@ if __name__ == '__main__':
         saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
 
         pickel = compatible_weights(saved_model['model'])
+        model_wrapper.model.fc = nn.Sequential(
+                nn.Linear(2048, 2048 // 2),
+                nn.ReLU(inplace=True),
+                nn.Linear(2048 // 2, 2048 // 4),
+                nn.ReLU(inplace=True),
+                nn.Linear(2048 // 4, 256)
+        )
         model_wrapper.model.load_state_dict(pickel) # get the state dict
         model_wrapper.model.to(Constants.DEVICE)
         
@@ -243,6 +250,8 @@ if __name__ == '__main__':
         # model_wrapper.model.fc[0] = nn.Linear(model_wrapper.model.fc[0].in_features, model_wrapper.model.fc[0].out_features)
         # model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
         # model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, 2)
+
+        # experiment show that small width projection head works better visually
         model_wrapper.model.fc = nn.Linear(model_wrapper.model.fc[0].in_features, 2)
 
     elif args.train:

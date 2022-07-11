@@ -5,12 +5,9 @@ TODO: Implement AD, AI,
 Target layer to be used is accor
 """
 
-from ast import Constant
 from copy import deepcopy
-import enum
 import torch
 from torch.nn.functional import softmax
-import matplotlib.pyplot as plt
 import os
 from skresnet import skresnext50_32x4d
 from layers import *
@@ -73,7 +70,9 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
-args.eval_segmentation = True # NOTE: FOR DEBUG PURPOSE
+
+if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
+    args.eval_segmentation = True 
 if args.eval_segmentation is None:
     args.eval_segmentation = False
 else:

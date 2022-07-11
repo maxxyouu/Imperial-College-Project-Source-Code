@@ -172,3 +172,8 @@ class Average_Increase_logger(metrics_logger):
     def get_avg(self):
         return self.metrics / self.N
 
+class Average_confidence_logger(metrics_logger):
+    """ TODO: TO BE IMPLEMENTED ORIGINAL SCORE - SCORE AFTER REMOVING THE SALIENCY REGIONS, THE HIGHER THE BETTER"""
+    def __init__(self, metrics_initial) -> None:
+        super().__init__(metrics_initial)
+

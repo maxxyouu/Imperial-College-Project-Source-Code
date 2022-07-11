@@ -1,5 +1,3 @@
-from email.policy import default
-from re import X
 from torchvision import transforms, datasets
 from torch.nn.functional import softmax
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -99,8 +97,14 @@ my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
                         help='match one of the function name') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
                         help='data directory') 
+my_parser.add_argument('--eval_segmentation',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='true indicate evaluate the segmentation performance of the cam method')
+my_parser.add_argument('--annotation_path',
+                        type=str, default=Constants.ANNOTATION_PATH,
+                        help='path for the imge annotation')
 # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
 args = my_parser.parse_args()
 
@@ -115,6 +119,18 @@ print('CAM: {}'.format(args.cam))
 print('Data Location {}'.format(args.data_location))
 data_dir = args.data_location
 
+if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
+    args.eval_segmentation = True 
+if args.eval_segmentation is None:
+    args.eval_segmentation = False
+else:
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+    annotation_file_list = os.listdir(args.annotation_path)
+print('Evaluate Segmentation {}'.format(args.eval_segmentation))
+
+
 # model_wrapper = get_trained_model(args.model)
 model_wrapper = switch_model(args.model, False)
 model_wrapper.load_learned_weights(args.model_weights)
@@ -127,6 +143,7 @@ model_dir_name = define_model_dir_path(args)
 data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
     [
         transforms.ToTensor(), # no need for the centercrop as it is at the cor
+        transforms.CenterCrop(230),
         transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD])
@@ -142,7 +159,92 @@ args.exp_map_func = eval(args.exp_map_func) # NOTE
 
 ad_logger = Average_Drop_logger(np.zeros((1,1)))
 ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
-ai_logger = Average_Increase_logger(np.zeros((1, 1)))
+
+
+def evaluate_segmentation_results():
+    pass
+
+def evaluate_model_metrics(model_wrapper, args):
+    print('Forward Passing the original images')
+    Yci = model_wrapper.model(x)
+    Yci = softmax(Yci, dim=1)
+    Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
+    
+    print('Forward Passing the explanation images')
+    img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
+    grayscale_cam = np.expand_dims(grayscale_cam, 1)
+    explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+    exp_scores = model_wrapper.model(explanation_map)
+    exp_scores = softmax(exp_scores, dim=1)
+    Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
+
+    # collect metrics data
+    Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
+    Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
+    ad_logger.compute_and_update(Yci, Oci)
+    ic_logger.compute_and_update(Yci, Oci)
+    print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+
+
+def generate_cams(x, args, image_order_book):
+    """_summary_
+
+    Args:
+        x (tensor): assume denormed
+        args (json): script arg input
+        image_order_book (list of tuples): identify the image name
+    """
+    # denormalize the image NOTE: must be placed after forward passing
+    # x = denorm(x)
+    
+    print('--------- Generating {} Heatmap'.format(args.cam))
+    # for each image in a batch
+    for i in range(x.shape[0]):
+        sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
+
+        # each image is a directory that contains all the experiment results
+        dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
+
+        # save the original image in parallel
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+            # save the original image
+            torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
+
+        # swap the axis so that the show_cam_on_image works
+        img = x[i, :].cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else x[i, :].detach().numpy() 
+        img = np.transpose(img, (1,2,0))
+
+        # save the overlayed-attention map with the cam name as a tag
+        attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
+        cam_name = '{}-layers{}'.format(args.cam, args.layers)
+        
+        plt.ioff()
+
+        logger = logging.getLogger()
+        old_level = logger.level
+        logger.setLevel(100)
+
+        segmentation = plt.imshow(grayscale_cam[i, :], cmap='seismic')
+        overlayed_image = plt.imshow(img, alpha=.5)
+        plt.axis('off')
+        plt.savefig(os.path.join(dest, cam_name+'_seismic.png'))
+
+        segmented_image = img*threshold(grayscale_cam[i, :])[...,np.newaxis]
+        segmented_image = np.where(segmented_image == 0, 100, segmented_image)
+        segmented_image = plt.imshow(segmented_image)
+        plt.axis('off')
+        plt.savefig(os.path.join(dest, cam_name+'_segments.png'))
+        plt.close()
+        
+        logger.setLevel(old_level)
+
+        masked_img = Image.fromarray(attention_map, 'RGB')
+        masked_img.save(os.path.join(dest, cam_name+'_rgb.jpg'))
+
+        # update the sequential index for next iterations
+        img_index += 1
+
 
 for x, y in dataloader:
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
@@ -152,81 +254,83 @@ for x, y in dataloader:
     # generate batch-wise cam
     cam_targets = None
     grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
-    
-    if args.run_mode == 'metrics':
-        print('Forward Passing the original images')
-        Yci = model_wrapper.model(x)
-        Yci = softmax(Yci, dim=1)
-        Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
-        
-        print('Forward Passing the explanation images')
-        img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
-        grayscale_cam = np.expand_dims(grayscale_cam, 1)
-        explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        exp_scores = model_wrapper.model(explanation_map)
-        exp_scores = softmax(exp_scores, dim=1)
-        Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
 
-        # collect metrics data
-        Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
-        Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
-        ad_logger.compute_and_update(Yci, Oci)
-        ic_logger.compute_and_update(Yci, Oci)
-        ai_logger.compute_and_update(Yci, Oci)
-        print('Progress: A.D: {}, I.C: {}, A.I: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics, ai_logger.current_metrics))
+    if args.eval_segmentation:
+        pass
+    elif args.run_mode == 'metrics':
+        # print('Forward Passing the original images')
+        # Yci = model_wrapper.model(x)
+        # Yci = softmax(Yci, dim=1)
+        # Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
+        
+        # print('Forward Passing the explanation images')
+        # img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
+        # grayscale_cam = np.expand_dims(grayscale_cam, 1)
+        # explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+        # exp_scores = model_wrapper.model(explanation_map)
+        # exp_scores = softmax(exp_scores, dim=1)
+        # Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
+
+        # # collect metrics data
+        # Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
+        # Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
+        # ad_logger.compute_and_update(Yci, Oci)
+        # ic_logger.compute_and_update(Yci, Oci)
+        # print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+
+        evaluate_model_metrics(model_wrapper, args)
 
     else:
-        # denormalize the image NOTE: must be placed after forward passing
-        x = denorm(x)
-        
-        print('--------- Generating {} Heatmap'.format(args.cam))
-        # for each image in a batch
-        for i in range(x.shape[0]):
-            sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
+        generate_cams(denorm(x), args, image_order_book)
+        # # denormalize the image NOTE: must be placed after forward passing
+        # x = denorm(x)
+        # print('--------- Generating {} Heatmap'.format(args.cam))
+        # # for each image in a batch
+        # for i in range(x.shape[0]):
+        #     sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
 
-            # each image is a directory that contains all the experiment results
-            dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
+        #     # each image is a directory that contains all the experiment results
+        #     dest = os.path.join(Constants.STORAGE_PATH, 'heatmaps', model_dir_name, '0' if y[i].item() == 0 else '1', sample_name)
 
-            # save the original image in parallel
-            if not os.path.exists(dest):
-                os.makedirs(dest)
-                # save the original image
-                torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
+        #     # save the original image in parallel
+        #     if not os.path.exists(dest):
+        #         os.makedirs(dest)
+        #         # save the original image
+        #         torchvision.utils.save_image(x[i, :], os.path.join(dest, 'original.jpg'))
 
-            # swap the axis so that the show_cam_on_image works
-            img = x[i, :].cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else x[i, :].detach().numpy() 
-            img = np.transpose(img, (1,2,0))
+        #     # swap the axis so that the show_cam_on_image works
+        #     img = x[i, :].cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else x[i, :].detach().numpy() 
+        #     img = np.transpose(img, (1,2,0))
 
-            # save the overlayed-attention map with the cam name as a tag
-            attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
-            cam_name = '{}-layers{}'.format(args.cam, args.layers)
+        #     # save the overlayed-attention map with the cam name as a tag
+        #     attention_map = show_cam_on_image(img, grayscale_cam[i, :], use_rgb=True)
+        #     cam_name = '{}-layers{}'.format(args.cam, args.layers)
             
-            plt.ioff()
+        #     plt.ioff()
 
-            logger = logging.getLogger()
-            old_level = logger.level
-            logger.setLevel(100)
+        #     logger = logging.getLogger()
+        #     old_level = logger.level
+        #     logger.setLevel(100)
 
-            segmentation = plt.imshow(grayscale_cam[i, :], cmap='seismic')
-            overlayed_image = plt.imshow(img, alpha=.5)
-            plt.axis('off')
-            plt.savefig(os.path.join(dest, cam_name+'_seismic.png'))
+        #     segmentation = plt.imshow(grayscale_cam[i, :], cmap='seismic')
+        #     overlayed_image = plt.imshow(img, alpha=.5)
+        #     plt.axis('off')
+        #     plt.savefig(os.path.join(dest, cam_name+'_seismic.png'))
 
-            segmented_image = img*threshold(grayscale_cam[i, :])[...,np.newaxis]
-            segmented_image = np.where(segmented_image == 0, 100, segmented_image)
-            segmented_image = plt.imshow(segmented_image)
-            plt.axis('off')
-            plt.savefig(os.path.join(dest, cam_name+'_segments.png'))
-            plt.close()
+        #     segmented_image = img*threshold(grayscale_cam[i, :])[...,np.newaxis]
+        #     segmented_image = np.where(segmented_image == 0, 100, segmented_image)
+        #     segmented_image = plt.imshow(segmented_image)
+        #     plt.axis('off')
+        #     plt.savefig(os.path.join(dest, cam_name+'_segments.png'))
+        #     plt.close()
             
-            logger.setLevel(old_level)
+        #     logger.setLevel(old_level)
 
-            masked_img = Image.fromarray(attention_map, 'RGB')
-            masked_img.save(os.path.join(dest, cam_name+'_rgb.jpg'))
+        #     masked_img = Image.fromarray(attention_map, 'RGB')
+        #     masked_img.save(os.path.join(dest, cam_name+'_rgb.jpg'))
 
-
-            # update the sequential index for next iterations
-            img_index += 1
+        #     # update the sequential index for next iterations
+        #     img_index += 1
 
 if args.run_mode == 'metrics':
-    print('{};  Average Drop: {}; Average IC: {}; Average Percentage Increase: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg(), ai_logger.get_avg()))
+    print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))

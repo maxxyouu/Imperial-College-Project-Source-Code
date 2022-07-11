@@ -117,6 +117,11 @@ if __name__ == '__main__':
             }
     }
     img_folder = '../MNG_annotations/annotated_imgs/1/'
+    if not os.path.exists(img_folder):
+        os.makedirs(img_folder)
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+
     for i, annotation in enumerate(anno_map['meningioma']['anno']):
         image_id = annotation['image_id']
         img_json = anno_map['meningioma']['images'][image_id - 1]

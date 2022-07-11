@@ -225,7 +225,7 @@ def evaluate_model_metrics(model_wrapper, args):
         print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
     else:
         ac_logger.compute_and_update(Yci, Oci)
-        print('Progress: A.C'.format(ac_logger.current_metrics))
+        print('Progress: A.C {}'.format(ac_logger.current_metrics))
 
 
 def generate_cams(x, args, image_order_book):

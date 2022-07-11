@@ -200,7 +200,7 @@ def evaluate_model_metrics(x, args):
         print('Progress: A.D: {}, I.C: {}, A.C'.format(ad_logger.current_metrics, ic_logger.current_metrics, ac_logger.current_metrics))
     else:
         ac_logger.compute_and_update(Yci, Oci)
-        print('Progress: A.C'.format(ac_logger.current_metrics))
+        print('Progress: A.C {}'.format(ac_logger.current_metrics))
 
     forward_handler.remove()
     backward_handler.remove()

@@ -33,11 +33,14 @@ def tensor2image(x, i =0):
     x = cv2.resize(np.transpose(x, (1, 2, 0)), (224, 224))
     return x
 
-def threshold(x):
+def threshold(x, inverse=False):
     mean_ = x.mean()
     std_ = x.std()
     thresh = mean_ +std_
-    x = (x>thresh)
+    if inverse:
+        x = (x <= thresh)
+    else:
+        x = (x>thresh)
     return x
 
 

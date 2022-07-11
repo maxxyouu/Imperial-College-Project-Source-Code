@@ -155,11 +155,16 @@ dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampl
 
 image_order_book, img_index = data.imgs, 0
 cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
-args.exp_map_func = eval(args.exp_map_func) # NOTE
+
+evaluate_inverse_threshold = False
+if args.exp_map_func == 'hard_inverse_threshold_explanation_map':
+    evaluate_inverse_threshold = True
+args.exp_map_func = eval(args.exp_map_func)
 
 ad_logger = Average_Drop_logger(np.zeros((1,1)))
 ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
 iou_logger = IOU_logger(0)
+ac_logger = Average_confidence_logger(np.zeros((1,1)))
 
 
 def evaluate_segmentation_results(x, cams, args, annotations):
@@ -214,9 +219,13 @@ def evaluate_model_metrics(model_wrapper, args):
     # collect metrics data
     Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
     Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
-    ad_logger.compute_and_update(Yci, Oci)
-    ic_logger.compute_and_update(Yci, Oci)
-    print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+    if not evaluate_inverse_threshold:
+        ad_logger.compute_and_update(Yci, Oci)
+        ic_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+    else:
+        ac_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.C'.format(ac_logger.current_metrics))
 
 
 def generate_cams(x, args, image_order_book):
@@ -375,7 +384,9 @@ for i, (x, y) in enumerate(dataloader):
         #     img_index += 1
 
 if args.eval_segmentation:
-     print('{}, IoU: {}'.format(args.layers, iou_logger.get_avg()))
+    print('{}, IoU: {}'.format(args.layers, iou_logger.get_avg()))
+elif evaluate_inverse_threshold:
+    print('{};  Average Confidence: {}'.format(args.layers, ac_logger.get_avg()))
 elif args.run_mode == 'metrics':
     print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
 else:

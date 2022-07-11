@@ -43,13 +43,19 @@ def hard_threshold_explanation_map(img, cam):
     explanation_map = img*threshold(cam)
     return explanation_map
 
+def hard_inverse_threshold_explanation_map(img, cam):
+    """
+    used for select which layer of the relevance cam to be used
+    """
+    explanation_map = img*threshold(cam, inverse=True)
+    return explanation_map
+
 def soft_explanation_map(img, cam):
     """in the grad cam paper
     used for examine the metrics AD, AI
     """
     return img * np.maximum(cam, 0)
 
-    
 inplace_normalize = transforms.Normalize(
             [Constants.DATA_MEAN, Constants.DATA_MEAN, Constants.DATA_MEAN], 
             [Constants.DATA_STD,Constants.DATA_STD, Constants.DATA_STD], inplace=True)
@@ -89,6 +95,9 @@ class metrics_logger:
         return NotImplementedError('metrics specific function, to be implemented')
 
 class IOU_logger:
+    """
+    The higher the better
+    """
     def __init__(self, metrics_initial) -> None:
         self.overlap = 0
         self.union = 0
@@ -102,11 +111,15 @@ class IOU_logger:
         self.union += union
 
 class Average_Drop_logger(metrics_logger):
+    """
+    The lower the better
+    """
     def __init__(self, metrics_initial) -> None:
         super().__init__(metrics_initial)
 
     def get_avg(self):
-        return self.metrics * 100 / self.N # softmax score, x100
+        return self.metrics * 100 / self.N # if using softmax score, x100
+
 
     def compute_and_update(self, Yci, Oci):
         """metrics specific
@@ -128,6 +141,7 @@ class Average_Drop_logger(metrics_logger):
         super().update(batch_pd, batch_size)
 
 class Increase_Confidence_logger(metrics_logger):
+    """The higher the better"""
     def __init__(self, metrics_initial) -> None:
         super().__init__(metrics_initial)
 
@@ -149,31 +163,28 @@ class Increase_Confidence_logger(metrics_logger):
     def get_avg(self):
         return self.metrics * 100 / self.N # if using softmax score, x100
 
-class Average_Increase_logger(metrics_logger):
-    def __init__(self, metrics_initial) -> None:
-        super().__init__(metrics_initial)
-
-    def compute_and_update(self, Yci, Oci):
-        """metrics specific
-
-        Args:
-            Yci (numpy array): score for the original image(s)
-            Oci (numpy array): score for the explanation map(s)
-            assume Yci and Oci are of the same shape
-        """
-        indicator = Yci < Oci
-        batch_size = indicator.shape[0]
-        percentage_increase = (Oci[indicator] - Yci[indicator]) / Yci[indicator]
-        # aggregate the batch statistics    
-        batch_pi = np.sum(percentage_increase, axis=0)
-        self.current_metrics = batch_pi
-        super().update(batch_pi, batch_size)
-
-    def get_avg(self):
-        return self.metrics / self.N
 
 class Average_confidence_logger(metrics_logger):
-    """ TODO: TO BE IMPLEMENTED ORIGINAL SCORE - SCORE AFTER REMOVING THE SALIENCY REGIONS, THE HIGHER THE BETTER"""
+    """ 
+    must be companied by hard inverse threshold
+    TODO: TO BE IMPLEMENTED ORIGINAL SCORE - SCORE AFTER REMOVING THE SALIENCY REGIONS, THE HIGHER THE BETTER
+    The higher the better
+    """
     def __init__(self, metrics_initial) -> None:
         super().__init__(metrics_initial)
+    
+    def compute_and_update(self, Yci, Oci):
+        # batch-wise percentage drop
+        percentage_drop = (Yci - Oci) / Yci
+        # percentage_drop = np.maximum(percentage_drop, 0) # NOTE: if it is negative, worse off the performance
+        
+        # aggregate the batch statistics
+        batch_size = percentage_drop.shape[0]
+        batch_pd = np.sum(percentage_drop, axis=0)
+        self.current_metrics = batch_pd
+        super().update(batch_pd, batch_size)
+
+    def get_avg(self):
+        return self.metrics * 100 / self.N # if using softmax score, x100
+
 

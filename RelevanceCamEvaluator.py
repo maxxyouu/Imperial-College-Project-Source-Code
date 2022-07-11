@@ -132,7 +132,11 @@ forward_handler = target_layer.register_forward_hook(forward_hook)
 backward_handler = target_layer.register_backward_hook(backward_hook)
 print('Registered Hooks')
 
+evaluate_inverse_threshold = False
+if args.exp_map_func == 'hard_inverse_threshold_explanation_map':
+    evaluate_inverse_threshold = True
 args.exp_map_func = eval(args.exp_map_func)
+
 
 if args.evaluate_all_layers:
     ad_logger = Average_Drop_logger(np.zeros((1, 4)))
@@ -141,6 +145,7 @@ else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
     ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
     iou_logger = IOU_logger(0)
+    ac_logger = Average_confidence_logger(np.zeros((1,1)))
 
 
 def evaluate_model_metrics(x, args):
@@ -175,7 +180,7 @@ def evaluate_model_metrics(x, args):
             _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=args.alpha)
             exp_scores = softmax(exp_scores, dim=1)
             layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
-        # [batch_size, layers]
+
         Oci = torch.stack(layer_explanation_scores, dim=1)
 
     else:
@@ -189,9 +194,13 @@ def evaluate_model_metrics(x, args):
     Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
     Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
 
-    ad_logger.compute_and_update(Yci, Oci)
-    ic_logger.compute_and_update(Yci, Oci)
-    print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+    if not evaluate_inverse_threshold:
+        ad_logger.compute_and_update(Yci, Oci)
+        ic_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.D: {}, I.C: {}, A.C'.format(ad_logger.current_metrics, ic_logger.current_metrics, ac_logger.current_metrics))
+    else:
+        ac_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.C'.format(ac_logger.current_metrics))
 
     forward_handler.remove()
     backward_handler.remove()
@@ -256,8 +265,10 @@ for i, (x, y) in enumerate(dataloader):
 
 
 # print the metrics results
-if not args.eval_segmentation:
+if not args.eval_segmentation and not evaluate_inverse_threshold:
     print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
+elif evaluate_inverse_threshold:
+    print('{};  Average Confidence: {}'.format(args.target_layer, ac_logger.get_avg()))
 else:
     print('{}, IoU: {}'.format(args.target_layer, iou_logger.get_avg()))
 

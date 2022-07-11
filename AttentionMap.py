@@ -375,7 +375,7 @@ for i, (x, y) in enumerate(dataloader):
         #     img_index += 1
 
 if args.eval_segmentation:
-     print('{}, IoU: {}'.format(args.target_layer, iou_logger.get_avg()))
+     print('{}, IoU: {}'.format(args.layers, iou_logger.get_avg()))
 elif args.run_mode == 'metrics':
     print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
 else:

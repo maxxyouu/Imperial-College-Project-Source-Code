@@ -82,10 +82,10 @@ my_parser.add_argument('--std',
                         type=float, default=1.,
                         help='noise level for smoothing') 
 my_parser.add_argument('--cam',
-                        type=str, default='xgradcam',
+                        type=str, default='gradcam',
                         help='cam name for explanation') 
 my_parser.add_argument('--layers',
-                        type=int, default=2,
+                        type=int, default=4,
                         help='cam name for explanation') 
 my_parser.add_argument('--batchSize',
                         type=int, default=3,
@@ -159,10 +159,43 @@ args.exp_map_func = eval(args.exp_map_func) # NOTE
 
 ad_logger = Average_Drop_logger(np.zeros((1,1)))
 ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
+iou_logger = IOU_logger(0)
 
 
-def evaluate_segmentation_results():
-    pass
+def evaluate_segmentation_results(x, cams, args, annotations):
+    """_summary_
+
+    Args:
+        model_wrapper (class): parent class of all "traditional" models
+        cams (cams from pytroch-cam pacakage): 
+        annotations(list of list): sublist represent all the annotations for an image
+    """
+    centerCrop = transforms.CenterCrop(230) # for cropping the data from loaded npy
+    logit_scores = model_wrapper.model(x)
+    batch_cam_mask = threshold(cams)
+
+    # aggregate all annotation for each image into one single mask
+    batch_aggregated_masks = []
+    for per_img_annotation in annotations:
+        loaded_npy_masks = [centerCrop(torch.tensor(np.load(a) // 255, device=Constants.DEVICE, dtype=torch.long)) 
+                            for a in per_img_annotation] # convert to tensor and center crop
+        aggregateds_mask = torch.sum(torch.stack(loaded_npy_masks, dim=0), dim=0)
+        aggregateds_mask = aggregateds_mask.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
+        batch_aggregated_masks.append(aggregateds_mask)
+    batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
+
+    # only take into account the correctly predicted images
+    correct_predict_index = (torch.argmax(logit_scores, dim=1) == 1).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' \
+                             else (torch.argmax(logit_scores, dim=1) == 1).detach().numpy()
+    batch_aggregated_masks = batch_aggregated_masks[correct_predict_index]
+    batch_cam_mask = batch_cam_mask[correct_predict_index]
+
+    # Intersection over Union
+    overlap = batch_cam_mask * batch_aggregated_masks
+    union = batch_cam_mask + batch_aggregated_masks
+    iou_logger.update(overlap.sum(), union.sum())
+    print('current iou: {}'.format(iou_logger.current_iou))
+
 
 def evaluate_model_metrics(model_wrapper, args):
     print('Forward Passing the original images')
@@ -246,17 +279,26 @@ def generate_cams(x, args, image_order_book):
         img_index += 1
 
 
-for x, y in dataloader:
+for i, (x, y) in enumerate(dataloader):
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
     
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing {}'.format(args.cam))
     # generate batch-wise cam
     cam_targets = None
-    grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets)
+    grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets) #(batch, width, height)
 
     if args.eval_segmentation:
-        pass
+        img_names = [image_order_book[img_index + k][0].split('/')[-1] for k in range(x.shape[0])]
+        batch_annotations = [] # list of list of annotation
+        for name in img_names:
+            per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))
+            per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]
+            batch_annotations.append(per_img_annotations)
+
+        evaluate_segmentation_results(x, grayscale_cam, args, batch_annotations)
+
+        img_index += x.shape[0]
     elif args.run_mode == 'metrics':
         # print('Forward Passing the original images')
         # Yci = model_wrapper.model(x)
@@ -332,5 +374,9 @@ for x, y in dataloader:
         #     # update the sequential index for next iterations
         #     img_index += 1
 
-if args.run_mode == 'metrics':
+if args.eval_segmentation:
+     print('{}, IoU: {}'.format(args.target_layer, iou_logger.get_avg()))
+elif args.run_mode == 'metrics':
     print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
+else:
+    print('Done generating saliency map')

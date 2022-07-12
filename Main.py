@@ -24,7 +24,7 @@ print('Device being used: {}'.format(Constants.DEVICE))
 class Main:
     def __init__(self, args):
         def _create_model_name(args):
-            name = args['model_name']
+            name = args['model_name'] + args['pickel_initial']
             if args['augNoise']:
                 name += '_noise'
             if args['pretrain']:
@@ -276,7 +276,8 @@ if __name__ == '__main__':
         'pretrain': args.pretrain,
         'simClr': args.simClr,
         'supCon': args.supCon,
-        'chkPointName': args.chkPointName
+        'chkPointName': args.chkPointName,
+        'pickel_initial': args.pickel_initial
     }
 
     main = Main(params)

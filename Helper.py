@@ -74,6 +74,9 @@ def extract_args():
     my_parser.add_argument('--head_type',
                             type=str, default='mlp', # example: ckpt_epoch_500
                             help='head type of the clr model') 
+    my_parser.add_argument('--pickel_initial',
+                            type=str, default='crop', # example: ckpt_epoch_500
+                            help='intial name for the saved  mdel') 
     my_parser.add_argument('--folderName',
                             type=str, default=None, # example: ckpt_epoch_500
                             help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 

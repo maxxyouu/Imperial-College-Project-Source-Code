@@ -145,7 +145,7 @@ else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
     ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
     iou_logger = IOU_logger(0)
-    ac_logger = Average_confidence_logger(np.zeros((1,1)))
+    ac_logger = Average_confidence_logger()
 
 
 def evaluate_model_metrics(x, args):
@@ -197,7 +197,7 @@ def evaluate_model_metrics(x, args):
     if not evaluate_inverse_threshold:
         ad_logger.compute_and_update(Yci, Oci)
         ic_logger.compute_and_update(Yci, Oci)
-        print('Progress: A.D: {}, I.C: {}, A.C'.format(ad_logger.current_metrics, ic_logger.current_metrics, ac_logger.current_metrics))
+        print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
     else:
         ac_logger.compute_and_update(Yci, Oci)
         print('Progress: A.C {}'.format(ac_logger.current_metrics))

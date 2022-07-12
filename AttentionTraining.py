@@ -226,7 +226,9 @@ for e in range(args.epochs):
                 assert(torch.sum(cams[layer]) == 0)
             if torch.any(correct_class == y):
                 assert(torch.sum(cams[layer]) != 0)
-        
+            #make sure the cam values are between zero and one (normalized)
+            assert(torch.max(cams[layer]) <= 1)
+            assert(torch.min(cams[layer]) >= 0)        
     
         # run the main network and attend using the cam results from the auxilary network
         main_model.train()  # put main_model to training mode

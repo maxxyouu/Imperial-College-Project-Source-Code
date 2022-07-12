@@ -62,6 +62,8 @@ class BaseCAM:
     def forward(self,
                 input_tensor: torch.Tensor,
                 targets: List[torch.nn.Module],
+                scale=True,
+                retain_model_output=False,
                 eigen_smooth: bool = False) -> np.ndarray:
 
         if self.cuda:
@@ -94,8 +96,11 @@ class BaseCAM:
         # or something else.
         cam_per_layer = self.compute_cam_per_layer(input_tensor,
                                                    targets, #f_targets,
-                                                   eigen_smooth)
+                                                   eigen_smooth, scale=scale)
         # cam_per_layer = self.lateral_inhibition(d_cam_per_layer, f_cam_per_layer)
+
+        if retain_model_output:
+            return self.aggregate_multi_layers(cam_per_layer), outputs
         return self.aggregate_multi_layers(cam_per_layer)
 
     def get_target_width_height(self,
@@ -117,12 +122,15 @@ class BaseCAM:
             input_tensor: torch.Tensor,
             targets: List[torch.nn.Module],
             #non_targets: List[torch.nn.Module],
-            eigen_smooth: bool) -> np.ndarray:
+            eigen_smooth: bool, 
+            scale=True) -> np.ndarray:
         activations_list = [a.cpu().data.numpy()
                             for a in self.activations_and_grads.activations]
         grads_list = [g.cpu().data.numpy()
                       for g in self.activations_and_grads.gradients]
-        target_size = self.get_target_width_height(input_tensor)
+        target_size = None
+        if scale:
+            target_size = self.get_target_width_height(input_tensor)
 
         cam_per_target_layer = []
         # Loop over the saliency image from every layer

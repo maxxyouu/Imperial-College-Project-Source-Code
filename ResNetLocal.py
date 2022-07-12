@@ -431,7 +431,21 @@ class ResNet(nn.Module):
             x = self.dropout(x)
         return x if pre_logits else self.fc(x)
 
-    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, attendCAM=None, alpha=2):
+    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, attendCAM={}, alpha=2):
+        """_summary_
+
+        Args:
+            x (_type_): _description_
+            mode (str, optional): _description_. Defaults to 'output'.
+            target_class (list, optional): _description_. Defaults to [None].
+            lrp (str, optional): _description_. Defaults to 'CLRP'.
+            internal (bool, optional): _description_. Defaults to False.
+            attendCAM (dictionary, optional): key = list index, value = feature sized cam from the aux network
+            alpha (int, optional): _description_. Defaults to 2.
+
+        Returns:
+            _type_: _description_
+        """
         # x = self.forward_features(x)
         # z = self.forward_head(x)
         # x_origin = deepcopy(x)
@@ -453,21 +467,25 @@ class ResNet(nn.Module):
         if self.grad_checkpointing and not torch.jit.is_scripting():
             x = checkpoint_seq([self.layer1, self.layer2, self.layer3, self.layer4], x, flatten=True)
         else:
+            
             layer1 = self.layer1(x)
-            if attendCAM is not None:
-                layer1 = torch.mul(1 + attendCAM[0], layer1)
+            if 0 in attendCAM:
+                # attendCAM[0] = [img #, 1, width, height] one cam for each image
+                # layer1 = [img #, channel, width, height]
+                # attendCAM[0] * layer1
+                layer1 = Multiply([1 + attendCAM[0], layer1])
             
             layer2 = self.layer2(layer1)
-            if attendCAM is not None:
-                layer2 = torch.mul(1 + attendCAM[1], layer2)
+            if 1 in attendCAM:
+                layer2 = Multiply([1 + attendCAM[1], layer2])
             
             layer3 = self.layer3(layer2)
-            if attendCAM is not None:
-                layer3 = torch.mul(1 + attendCAM[2], layer3)
+            if 2 in attendCAM:
+                layer3 = Multiply([1 + attendCAM[2], layer3])
             
             layer4 = self.layer4(layer3)
-            if attendCAM is not None:
-                layer4 = torch.mul(1 + attendCAM[3], layer4)
+            if 3 in attendCAM:
+                layer4 = Multiply([1 + attendCAM[3], layer4])
 
             # layer1s = _inner_pass(x, self.layer1)
             # layer1 =  layer1s[-1]

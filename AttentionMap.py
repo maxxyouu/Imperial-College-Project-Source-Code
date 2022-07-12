@@ -202,7 +202,7 @@ def evaluate_segmentation_results(x, cams, args, annotations):
     print('current iou: {}'.format(iou_logger.current_iou))
 
 
-def evaluate_model_metrics(model_wrapper, args):
+def evaluate_model_metrics(model_wrapper, grayscale_cam, args):
     print('Forward Passing the original images')
     Yci = model_wrapper.model(x)
     Yci = softmax(Yci, dim=1)
@@ -309,27 +309,27 @@ for i, (x, y) in enumerate(dataloader):
 
         img_index += x.shape[0]
     elif args.run_mode == 'metrics':
-        # print('Forward Passing the original images')
-        # Yci = model_wrapper.model(x)
-        # Yci = softmax(Yci, dim=1)
-        # Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
+        print('Forward Passing the original images')
+        Yci = model_wrapper.model(x)
+        Yci = softmax(Yci, dim=1)
+        Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # get the score respects to the corresponding label
         
-        # print('Forward Passing the explanation images')
-        # img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
-        # grayscale_cam = np.expand_dims(grayscale_cam, 1)
-        # explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        # exp_scores = model_wrapper.model(explanation_map)
-        # exp_scores = softmax(exp_scores, dim=1)
-        # Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
+        print('Forward Passing the explanation images')
+        img = denorm(x).detach().numpy() if Constants.WORK_ENV == 'LOCAL' else denorm(x).cpu().detach().numpy()
+        grayscale_cam = np.expand_dims(grayscale_cam, 1)
+        explanation_map = get_explanation_map(args.exp_map_func, img, grayscale_cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+        exp_scores = model_wrapper.model(explanation_map)
+        exp_scores = softmax(exp_scores, dim=1)
+        Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
 
-        # # collect metrics data
-        # Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
-        # Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
-        # ad_logger.compute_and_update(Yci, Oci)
-        # ic_logger.compute_and_update(Yci, Oci)
-        # print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
+        # collect metrics data
+        Yci = Yci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Yci.cpu().detach().numpy()
+        Oci = Oci.detach().numpy() if Constants.WORK_ENV == 'LOCAL' else Oci.cpu().detach().numpy()
+        ad_logger.compute_and_update(Yci, Oci)
+        ic_logger.compute_and_update(Yci, Oci)
+        print('Progress: A.D: {}, I.C: {}'.format(ad_logger.current_metrics, ic_logger.current_metrics))
 
-        evaluate_model_metrics(model_wrapper, args)
+        # evaluate_model_metrics(model_wrapper, evaluate_model_metrics, args)
 
     else:
         generate_cams(denorm(x), args, image_order_book)

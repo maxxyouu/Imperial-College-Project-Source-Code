@@ -1,4 +1,8 @@
 
+"""
+Script for Explanation-driven Model Training
+"""
+
 import os
 import argparse
 from copy import deepcopy
@@ -15,8 +19,6 @@ from EvaluatorUtils import *
 from PIL import Image
 import torch.optim as optim
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-
-
 
 # set the seed for reproducibility
 rng_seed = 99

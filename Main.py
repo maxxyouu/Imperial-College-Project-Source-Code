@@ -141,7 +141,7 @@ class Main:
     def train(self, model_weights_des=Constants.SAVED_MODEL_PATH):
         self.model_wrapper.model = self.model_wrapper.model.to(device=Constants.DEVICE)  # move the model parameters to CPU/GPU
 
-        patience, optimal_val_loss = 5, np.inf
+        patience, optimal_val_loss = self.earlyStopping_patience, np.inf
 
         for e in range(self.epochs):
             for t, (x, y, name) in enumerate(self.loader_train):

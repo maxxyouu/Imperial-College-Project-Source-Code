@@ -431,7 +431,7 @@ class ResNet(nn.Module):
             x = self.dropout(x)
         return x if pre_logits else self.fc(x)
 
-    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, alpha=2):
+    def forward(self, x, mode='output', target_class = [None], lrp='CLRP', internal=False, attendCAM=None, alpha=2):
         # x = self.forward_features(x)
         # z = self.forward_head(x)
         # x_origin = deepcopy(x)
@@ -453,22 +453,34 @@ class ResNet(nn.Module):
         if self.grad_checkpointing and not torch.jit.is_scripting():
             x = checkpoint_seq([self.layer1, self.layer2, self.layer3, self.layer4], x, flatten=True)
         else:
-            # layer1 = self.layer1(x)
-            # layer2 = self.layer2(layer1)
-            # layer3 = self.layer3(layer2)
-            # layer4 = self.layer4(layer3)
-        
-            layer1s = _inner_pass(x, self.layer1)
-            layer1 =  layer1s[-1]
+            layer1 = self.layer1(x)
+            if attendCAM is not None:
+                layer1 = torch.mul(1 + attendCAM[0], layer1)
+            
+            layer2 = self.layer2(layer1)
+            if attendCAM is not None:
+                layer2 = torch.mul(1 + attendCAM[1], layer2)
+            
+            layer3 = self.layer3(layer2)
+            if attendCAM is not None:
+                layer3 = torch.mul(1 + attendCAM[2], layer3)
+            
+            layer4 = self.layer4(layer3)
+            if attendCAM is not None:
+                layer4 = torch.mul(1 + attendCAM[3], layer4)
 
-            layer2s = _inner_pass(layer1, self.layer2)
-            layer2 = layer2s[-1]
+            # layer1s = _inner_pass(x, self.layer1)
+            # layer1 =  layer1s[-1]
 
-            layer3s = _inner_pass(layer2, self.layer3)
-            layer3 = layer3s[-1]
 
-            layer4s = _inner_pass(layer3, self.layer4)
-            layer4 = layer4s[-1]
+            # layer2s = _inner_pass(layer1, self.layer2)
+            # layer2 = layer2s[-1]
+
+            # layer3s = _inner_pass(layer2, self.layer3)
+            # layer3 = layer3s[-1]
+
+            # layer4s = _inner_pass(layer3, self.layer4)
+            # layer4 = layer4s[-1]
         
         # classifier
         x = self.global_pool(layer4)
@@ -481,13 +493,7 @@ class ResNet(nn.Module):
             return [],  z
             # return z
 
-        
-        # handle CLRP
-        # if lrp == 'SGLRP':
-        #     R = self.SGCLR(z, target_class)
-        # else:
         R = self.CLRP(z, target_class) # COMPUTE THE CLRP SCORE FOR A PARTICULAR CLASS
-
 
         # backpropagate the classifier
         R = self.fc.relprop(R, alpha) 
@@ -495,7 +501,34 @@ class ResNet(nn.Module):
         if self.drop_rate:
             R = self.dropout.relprop(R, alpha)
         R4 = self.global_pool.relprop(R, alpha)
-        
+
+        if mode == 'all':
+            # LAYER 4 CAM
+            r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
+            r_cam4 = layer4 * r_weight4
+            # sum up the attention map
+            r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
+
+            # LAYER 3 CAM
+            R3 = self.layer4.relprop(R4, alpha) # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
+            r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
+            r_cam3 = layer3 * r_weight3
+            r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
+
+            # LAYER 2 CAM
+            R2 = self.layer3.relprop(R3, alpha)
+            r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
+            r_cam2 = layer2 * r_weight2
+            r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)   
+
+            # LAYER 1 CAM
+            R1 = self.layer2.relprop(R2, alpha)
+            r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
+            r_cam1 = layer1 * r_weight1
+            r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
+
+            return [r_cam1, r_cam2, r_cam3, r_cam4], z
+
         # backpropagte the feature extractor
         r_cams = []
         if mode == 'layer4':
@@ -521,7 +554,7 @@ class ResNet(nn.Module):
             if not internal:
                 r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
                 r_cam2 = layer2 * r_weight2
-                r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)
+                r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)               
                 return [r_cam2], z
             _, r_cams = self.inner_layer_relprop(layer2s, self.layer2, R2, alpha=alpha) # NOTE:inspect the internal of the stage
         elif mode == 'layer1':

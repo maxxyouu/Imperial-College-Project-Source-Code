@@ -164,7 +164,7 @@ args.exp_map_func = eval(args.exp_map_func)
 ad_logger = Average_Drop_logger(np.zeros((1,1)))
 ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
 iou_logger = IOU_logger(0)
-ac_logger = Average_confidence_logger(np.zeros((1,1)))
+ac_logger = Average_confidence_logger()
 
 
 def evaluate_segmentation_results(x, cams, args, annotations):

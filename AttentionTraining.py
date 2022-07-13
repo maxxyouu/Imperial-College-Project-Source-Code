@@ -204,7 +204,6 @@ for e in range(args.epochs):
                 layerNum = i + 1
                 if layerNum in args.target_layers:
                     cams[i] = cam
-
         else:
             cams = {}
             layers = [aux_model.layer1, aux_model.layer2, aux_model.layer3, aux_model.layer4]

@@ -3,6 +3,7 @@ from typing import Callable
 import Constants
 import numpy as np
 import cv2
+from Helper import max_min_lrp_normalize
 from RelevanceCamUtils import *
 from torchvision import transforms
 
@@ -18,6 +19,7 @@ def resize_cam(cam):
         [cv2.resize(cam[i, :].squeeze(0), (230, 230)) for i in range(cam.shape[0])],
         axis=0)
     cam = np.expand_dims(cam, axis=1)
+    cam = max_min_lrp_normalize(cam) # normalize the saliency results
     return cam
 
 def resize_img(img):

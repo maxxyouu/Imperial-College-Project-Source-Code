@@ -51,6 +51,7 @@ def show_cam_on_image(img: np.ndarray,
 def scale_cam_image(cam, target_size=None):
     result = []
     for img in cam:
+        # make the saliency map between 0 and one
         img = img - np.min(img)
         img = img / (1e-7 + np.max(img))
         # img = (img - np.mean(img)) / np.std(img)

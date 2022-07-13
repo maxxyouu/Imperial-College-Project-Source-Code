@@ -261,6 +261,11 @@ for e in range(args.epochs):
     if patience <= 0:
         break
 
+if args.cam == 'relevance-cam':
+    for hook in aux_f_hooks:
+        hook.remove()
+    for hook in aux_b_hooks:
+        hook.remove()
 
 
 

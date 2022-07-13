@@ -45,7 +45,7 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
                         help='data directory')   
 my_parser.add_argument('--alpha',
                         type=float, default=2, # example: ckpt_epoch_500

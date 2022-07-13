@@ -118,7 +118,7 @@ test, test_dataloader = data_dict['test']
 
 optimizer = optim.Adamax(main_model.parameters(), lr=args.learningRate, weight_decay=1e-8)
     
-loss = nn.CrossEntropyLoss()
+loss_func = nn.CrossEntropyLoss()
 
 model_weights_des = Constants.SAVED_MODEL_PATH
 
@@ -197,6 +197,7 @@ for e in range(args.epochs):
         targets = y.tolist()
         if args.cam == 'relevance-cam':
             all_cams, logits = aux_model(x, target_class=targets, mode='all')
+            all_cams = [max_min_lrp_normalize(cam) for cam in all_cams]
             # filter the layer cams that match the user input
             cams = {}
             for i, cam in enumerate(all_cams):
@@ -220,7 +221,7 @@ for e in range(args.epochs):
         correct_class = torch.argmax(logits, dim=1)
         for layer in cams:
             cams[layer][(correct_class != y), :] = 0
-            print('Amount of attention being used: {}'.format(torch.sum(correct_class == y).item()))
+            # print('Amount of attention being used: {}'.format(torch.sum(correct_class == y).item()))
             # sanity check to see how many of the mare non-zero out
             if torch.all(correct_class != y):
                 assert(torch.sum(cams[layer]) == 0)
@@ -233,7 +234,7 @@ for e in range(args.epochs):
         # run the main network and attend using the cam results from the auxilary network
         main_model.train()  # put main_model to training mode
         _, unnormalized_score = main_model(x, attendCAM=cams, alpha=args.alpha) # unnormalized
-        loss = loss(unnormalized_score, y)
+        loss = loss_func(unnormalized_score, y)
 
         # Update the parameters of the main_model using the gradients
         loss.backward()

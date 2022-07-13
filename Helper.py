@@ -116,7 +116,13 @@ def extract_attention_cam_args():
     args = my_parser.parse_args()                                              
     return args
 
-
+def max_min_lrp_normalize(Ac):
+    Ac_shape = Ac.shape
+    AA = Ac.view(Ac.size(0), -1)
+    AA -= AA.min(1, keepdim=True)[0]
+    AA /= AA.max(1, keepdim=True)[0]
+    scaled_ac = AA.view(Ac_shape)
+    return scaled_ac
 
 def denorm(tensor):
     return tensor.mul(Constants.DATA_STD).add(Constants.DATA_MEAN)

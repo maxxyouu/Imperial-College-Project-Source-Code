@@ -165,7 +165,7 @@ def check_accuracy(model, loader, best_model=False, store_sample=False, _print=F
                 x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)  # move to device
                 y = y.to(device=Constants.DEVICE, dtype=torch.long)
 
-                scores = model(x)
+                _, scores = model(x)
                 _, preds = scores.max(1)
 
                 # record the loss
@@ -185,6 +185,7 @@ def check_accuracy(model, loader, best_model=False, store_sample=False, _print=F
         return float(acc), sum(losses)/len(losses)
 
 #NOTE: MAIN LOOP TRAINING
+print('Training Started')
 patience, optimal_val_loss = args.earlyStoppingPatience, np.inf
 for e in range(args.epochs):
     for t, (x, y, name) in enumerate(train_dataloader):

@@ -169,7 +169,7 @@ def check_accuracy(model, loader, best_model=False, store_sample=False, _print=F
                 _, preds = scores.max(1)
 
                 # record the loss
-                losses.append(loss(scores, y))
+                losses.append(loss_func(scores, y))
 
                 # if store_sample:
                 #     print('Saving correctly classified images')

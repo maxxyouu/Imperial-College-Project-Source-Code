@@ -45,7 +45,7 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # example: ckpt_epoch_500
                         help='data directory')   
 my_parser.add_argument('--alpha',
                         type=float, default=2, # example: ckpt_epoch_500
@@ -72,8 +72,8 @@ print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_segmentation = True 
-if args.eval_segmentation is None:
+    args.eval_segmentation = False 
+if args.eval_segmentation is None or args.eval_segmentation == False:
     args.eval_segmentation = False
 else:
     #make sure in the correct data source location
@@ -129,7 +129,7 @@ layers = ['layer1', 'layer2', 'layer3', 'layer4']
 layer_idx_mapper = {'layer1': 0, 'layer2': 1, 'layer3': 2, 'layer4': 3}
 
 forward_handler = target_layer.register_forward_hook(forward_hook)
-backward_handler = target_layer.register_backward_hook(backward_hook)
+backward_handler = target_layer.register_full_backward_hook(backward_hook)
 print('Registered Hooks')
 
 evaluate_inverse_threshold = False

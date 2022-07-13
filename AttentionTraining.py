@@ -244,7 +244,7 @@ for e in range(args.epochs):
         aux_model.load_state_dict(main_model.state_dict())
 
         if t % 20 == 0:
-            print('Iteration loss: {}'.format(loss))
+            print('{}/{} Iteration loss: {}'.format(t, len(train_dataloader), loss))
 
     # evaluate the validation dataset after every epoch
     val_acc, val_loss = check_accuracy(main_model, val_dataloader)

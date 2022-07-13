@@ -252,7 +252,7 @@ for e in range(args.epochs):
     if val_loss < optimal_val_loss:
         print('Saving main_model')
         # save the main_model to destination
-        model_dest = os.path.join(model_weights_des, '{}.pt'.format(args.model_name))
+        model_dest = os.path.join(model_weights_des, '{}.pt'.format(args.pickel_name))
         torch.save(main_model.state_dict(), model_dest)
 
         # udpate the tracking parameters

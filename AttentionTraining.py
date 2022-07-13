@@ -243,6 +243,9 @@ for e in range(args.epochs):
         # replace the weights of the auxilary network after each iteration
         aux_model.load_state_dict(main_model.state_dict())
 
+        if t % 20 == 0:
+            print('Iteration loss: {}'.format(loss))
+
     # evaluate the validation dataset after every epoch
     val_acc, val_loss = check_accuracy(main_model, val_dataloader)
     print('Epoch: {}, Validation Loss {}, val_acc {}'.format(e, val_loss, val_acc))

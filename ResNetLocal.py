@@ -473,19 +473,19 @@ class ResNet(nn.Module):
                 # attendCAM[0] = [img #, 1, width, height] one cam for each image
                 # layer1 = [img #, channel, width, height]
                 # attendCAM[0] * layer1
-                layer1 = Multiply([1 + attendCAM[0], layer1])
+                layer1 = torch.mul(1 + attendCAM[0], layer1)
             
             layer2 = self.layer2(layer1)
             if 1 in attendCAM:
-                layer2 = Multiply([1 + attendCAM[1], layer2])
+                layer2 = torch.mul(1 + attendCAM[1], layer2)
             
             layer3 = self.layer3(layer2)
             if 2 in attendCAM:
-                layer3 = Multiply([1 + attendCAM[2], layer3])
+                layer3 = torch.mul(1 + attendCAM[2], layer3)
             
             layer4 = self.layer4(layer3)
             if 3 in attendCAM:
-                layer4 = Multiply([1 + attendCAM[3], layer4])
+                layer4 = torch.mul(1 + attendCAM[3], layer4)
 
             # layer1s = _inner_pass(x, self.layer1)
             # layer1 =  layer1s[-1]

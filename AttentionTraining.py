@@ -231,7 +231,7 @@ for e in range(args.epochs):
     
         # run the main network and attend using the cam results from the auxilary network
         main_model.train()  # put main_model to training mode
-        unnormalized_score = main_model(x, attendCAM=cams, alpha=args.alpha) # unnormalized
+        _, unnormalized_score = main_model(x, attendCAM=cams, alpha=args.alpha) # unnormalized
         loss = loss(unnormalized_score, y)
 
         # Update the parameters of the main_model using the gradients

@@ -5,7 +5,6 @@ Script for Explanation-driven Model Training
 
 import os
 import argparse
-from copy import deepcopy
 import torch
 import os
 from skresnet import skresnext50_32x4d
@@ -13,10 +12,9 @@ from layers import *
 from RelevanceCamUtils import *
 import Constants
 import argparse
-from torchvision import transforms, datasets
+from torchvision import transforms
 from Helper import *
 from EvaluatorUtils import *
-from PIL import Image
 import torch.optim as optim
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
@@ -233,7 +231,7 @@ for e in range(args.epochs):
         # run the main network and attend using the cam results from the auxilary network
         main_model.train()  # put main_model to training mode
         unnormalized_score = main_model(x, attendCAM=cams, alpha=args.alpha) # unnormalized
-        loss = loss(unnormalized_score, y) # TODO: make sure it is appropriate
+        loss = loss(unnormalized_score, y)
 
         # Update the parameters of the main_model using the gradients
         loss.backward()

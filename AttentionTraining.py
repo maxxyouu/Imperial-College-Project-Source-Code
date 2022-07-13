@@ -60,6 +60,7 @@ args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
+args.pickel_name = '{}_targetLayers{}_alpha{}_{}'.format(args.pickel_name, args.target_layers, args.alpha, args.cam)
 print('Pickel Name: {}'.format(args.pickel_name))
 print('Batch Size: {}'.format(args.batch_size))
 print('Epochs Training {}'.format(args.epochs))

@@ -29,3 +29,16 @@ class XGradCAM(BaseCAM):
             (sum_activations[:, :, None, None] + eps)
         weights = weights.sum(axis=(2, 3))
         return weights
+
+    # def get_cam_image(self,
+    #                   input_tensor,
+    #                   target_layer,
+    #                   target_category,
+    #                   activations,
+    #                   grads,
+    #                   eigen_smooth):
+    #     # the modifed version that take layer cam into account
+    #     sum_activations = np.sum(np.maximum(grads, 0) * activations , axis=(2, 3)) # left with [batchsize, channels], each feature map of each image has a weight
+    #     eps = 1e-7
+    #     weights = np.maximum(grads, 0) * activations / (sum_activations[:, :, None, None] + eps) # this is the spatial weights
+    #     return weights.sum(axis=1) # spatial weights for the weighted feature map

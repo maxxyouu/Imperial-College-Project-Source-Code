@@ -129,8 +129,8 @@ class BaseCAM:
         grads_list = [g.cpu().data.numpy()
                       for g in self.activations_and_grads.gradients]
         target_size = None
-        if scale:
-            target_size = self.get_target_width_height(input_tensor)
+        # if scale:
+        target_size = self.get_target_width_height(input_tensor)
 
         cam_per_target_layer = []
         # Loop over the saliency image from every layer

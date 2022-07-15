@@ -552,6 +552,9 @@ class ResNet(nn.Module):
         if mode == 'layer4':
             # # global average pooling as the weight for the layers
             if not internal:
+                # gradcam++ weighting strategies
+                
+
                 r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
                 r_cam4 = layer4 * r_weight4
                 # sum up the attention map

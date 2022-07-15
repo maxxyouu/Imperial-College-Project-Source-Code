@@ -30,3 +30,4 @@ class GradCAMPlusPlus(BaseCAM):
         weights = np.maximum(grads, 0) * aij
         weights = np.sum(weights, axis=(2, 3))
         return weights
+

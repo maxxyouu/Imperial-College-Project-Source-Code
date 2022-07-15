@@ -22,19 +22,20 @@ from Helper import denorm
 import logging
 from PIL import Image
 # skresnext50_32x4d_supCon_last_1layer
-MODEL_WEIGHTS = 'skresnext50_32x4d_supCon_last_1Layer.pt'
+default_model_name = 'skresnext50_32x4d'
+MODEL_WEIGHTS = default_model_name+'_pretrain.pt'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model',
-                        type=str, default='skresnext50_32x4d',
+                        type=str, default=default_model_name,
                         help='model to be used for training / testing') 
 my_parser.add_argument('--pickle_name',
-                        type=str, default=MODEL_WEIGHTS,
+                        type=str, default=default_model_name+'_pretrain.pt',
                         help='pickel name for weight loading') 
 my_parser.add_argument('--state_dict_path',
-                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, MODEL_WEIGHTS),
+                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='iteration for smoothing') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer3',
+                        type=str, default='layer4',
                         help='cam layer for explanation') 
 my_parser.add_argument('--batchSize',
                         type=int, default=32,
@@ -43,10 +44,10 @@ my_parser.add_argument('--lrpMode',
                         type=str, default='CLRP',
                         help='LRP mode for backpropgation')  
 my_parser.add_argument('--alpha',
-                        type=int, default=2,
+                        type=int, default=1,
                         help='alpha in the propagation rule')  
 my_parser.add_argument('--dest_dir_name',
-                        type=str, default='skresnext50_32x4d_pretrain',
+                        type=str, default='skresnext50_32x4d',
                         help='destination folder in google drive')                    
 args = my_parser.parse_args()
 

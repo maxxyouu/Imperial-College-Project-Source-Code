@@ -30,7 +30,7 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer3',
+                        type=str, default='layer4',
                         help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
 my_parser.add_argument('--batch_size',
                         type=int, default=3,
@@ -55,7 +55,10 @@ my_parser.add_argument('--eval_segmentation',
                         help='true indicate evaluate the segmentation performance of the cam method')
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
-                        help='path for the imge annotation')              
+                        help='path for the imge annotation')    
+my_parser.add_argument('--plusplusMode',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='using gradcam plusplus mode')              
 args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
@@ -70,6 +73,9 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Alpha: {}'.format(args.alpha))
 print('Data Location {}'.format(args.data_location))
+if args.plusplusMode is None:
+    args.plusplusMode = True # for local debug only
+print('Plus Plus Mode: {}'.format(args.plusplusMode))
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
     args.eval_segmentation = False 
@@ -153,13 +159,13 @@ def evaluate_model_metrics(x, args):
     if args.evaluate_all_layers:
         layer_explanations = [] # each index location store a batch-size of cam explanation map
         for layer in layers:
-            cams, Yci = model(x, mode=layer, target_class=[None], internal=False, alpha=args.alpha)
+            cams, Yci = model(x, mode=layer,  target_class=[None], plusplusMode=args.plusplusMode, internal=False, alpha=args.alpha)
             Yci = softmax(Yci, dim=1)
             layer_explanations.append(resize_cam(cams[0]))
             Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # only care about the score for the true label
         cam = layer_explanations[layer_idx_mapper[args.target_layer]] # retrieve the target layer according to the argument provided for the following code
     else:
-        cams, Yci = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
+        cams, Yci = model(x, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode, internal=False, alpha=args.alpha)
         Yci = softmax(Yci, dim=1)
         cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
@@ -177,7 +183,7 @@ def evaluate_model_metrics(x, args):
             explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
 
             ## NOTE: FOR DEBUG
-            _, exp_scores = model(explanation_map, mode='output', target_class=[None], internal=False, alpha=args.alpha)
+            _, exp_scores = model(explanation_map, mode='output', target_class=[None], plusplusMode=args.plusplusMode, internal=False, alpha=args.alpha)
             exp_scores = softmax(exp_scores, dim=1)
             layer_explanation_scores.append(exp_scores[range(Yci.shape[0]), y]) # the corresponding label score (the anchor)
 
@@ -185,7 +191,7 @@ def evaluate_model_metrics(x, args):
 
     else:
         explanation_map = get_explanation_map(args.exp_map_func, img, cam).to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-        _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
+        _, exp_scores = model(explanation_map, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode, internal=False, alpha=args.alpha)
         exp_scores = softmax(exp_scores, dim=1)
         Oci = exp_scores[range(Yci.shape[0]), y].unsqueeze(1)
         # compare the explanation score with the original score
@@ -216,7 +222,7 @@ def evaluate_segmentation_metrics(x, annotations, args):
         args (dicts): user input for the script
     """
     centerCrop = transforms.CenterCrop(230)
-    r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], internal=False, alpha=args.alpha)
+    r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode, internal=False, alpha=args.alpha)
     cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)
     # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')

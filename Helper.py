@@ -3,7 +3,7 @@ import torch
 import argparse
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
+from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM, LayerCAMPlusPlus
 # from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, LayerCAM
 from BaselineModel import Pytorch_default_resNet, Pytorch_default_resnext, Pytorch_default_skres, Pytorch_default_skresnext, Pytorch_default_vgg
 from CLEImageDataset import CLEImageDataset
@@ -145,6 +145,8 @@ def switch_cam(cam, model, target_layers):
         return FullGrad(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
     elif cam == 'layercam':
         return LayerCAM(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
+    elif cam == 'layercam++':
+        return LayerCAMPlusPlus(model=model, target_layers=target_layers, use_cuda=True if WORK_ENV == 'COLAB' else False)
     else:
         print('NO SUCH CAM EXISTS')
 

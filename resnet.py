@@ -4,6 +4,7 @@ import torch.utils.model_zoo as model_zoo
 from layers import *
 import torch
 import numpy as np
+import Constants
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
 
@@ -279,7 +280,7 @@ class ResNet(nn.Module):
 
         return Sequential(*layers)
 
-    def forward(self, x, mode='output', plusplusMode=False, target_class = [None], lrp='CLRP'):
+    def forward(self, x, mode='output', plusplusMode=False, target_class = [None], lrp='CLRP', alpha=2):
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -313,9 +314,9 @@ class ResNet(nn.Module):
             return z
 
         R = self.CLRP(z, target_class)
-        R = self.fc.relprop(R, 1)
+        R = self.fc.relprop(R, alpha)
         R = R.reshape_as(self.avgpool.Y)
-        R4 = self.avgpool.relprop(R, 1)
+        R4 = self.avgpool.relprop(R, alpha)
 
         def _lpr_plusplus_weights(grads, activations):
             """
@@ -326,8 +327,8 @@ class ResNet(nn.Module):
             returns: a tensor weight 
             """
             # convert to numpy
-            grads = grads.detach().numpy()
-            activations = activations.detach().numpy()
+            grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
+            activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
 
             grads_power_2 = grads**2
             grads_power_3 = grads_power_2 * grads
@@ -343,7 +344,7 @@ class ResNet(nn.Module):
             weights = np.maximum(grads, 0) * aij
             weights = np.sum(weights, axis=(2, 3), keepdims=True)
             # convert back to tensor
-            return torch.tensor(weights)
+            return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
 
         if mode == 'layer4':
             # global average pooling as the weight for the layers
@@ -356,7 +357,7 @@ class ResNet(nn.Module):
             return [r_cam4], z
             # _, r_cams = self.inner_layer_relprop(layer4s, self.layer4, R4, alpha=1) # NOTE:inspect the internal of the stage
         elif mode == 'layer3':
-            R3 = self.layer4.relprop(R4, 1)
+            R3 = self.layer4.relprop(R4, alpha)
             if plusplusMode:
                 r_weight3 = _lpr_plusplus_weights(R3, layer3)
             else:
@@ -372,8 +373,8 @@ class ResNet(nn.Module):
             # _, r_cams = self.inner_layer_relprop(layer3s, self.layer3, R3, alpha=1) # NOTE: inspect the internal of the stage
             # return r_cams, z
         elif mode == 'layer2':
-            R3 = self.layer4.relprop(R4, 1)
-            R2 = self.layer3.relprop(R3, 1)
+            R3 = self.layer4.relprop(R4, alpha)
+            R2 = self.layer3.relprop(R3, alpha)
             if plusplusMode:
                 r_weight2 = _lpr_plusplus_weights(R2, layer2)
             else:
@@ -385,9 +386,9 @@ class ResNet(nn.Module):
             # _, r_cams = self.inner_layer_relprop(layer2s, self.layer2, R2, alpha=1) # NOTE: inspect the internal of the stage
             # return r_cams, z
         elif mode == 'layer1':
-            R3 = self.layer4.relprop(R4, 1)
-            R2 = self.layer3.relprop(R3, 1)
-            R1 = self.layer2.relprop(R2, 1)
+            R3 = self.layer4.relprop(R4, alpha)
+            R2 = self.layer3.relprop(R3, alpha)
+            R1 = self.layer2.relprop(R2, alpha)
             if plusplusMode:
                 r_weight1 = _lpr_plusplus_weights(R1, layer1)
             else:
@@ -423,9 +424,13 @@ class ResNet(nn.Module):
     def CLRP(self, x, maxindex = [None]):
         if maxindex == [None]:
             maxindex = torch.argmax(x, dim=1)
-        R = torch.ones(x.shape)#.cuda()
-        # R /= -self.num_classes
-        R = R*(-1/self.num_classes)
+        
+        if Constants.WORK_ENV == 'COLAB':
+            R = torch.ones(x.shape).cuda()
+        else:
+            R = torch.ones(x.shape)
+
+        R /= -self.num_classes
         for i in range(R.size(0)):
             R[i, maxindex[i]] = 1
         return R

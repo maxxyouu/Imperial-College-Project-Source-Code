@@ -93,6 +93,57 @@ class RelPropSimple(RelProp):
             Rp = backward(R_p)
         return Rp
 
+class Clone(RelProp):
+    def forward(self, input, num):
+        self.__setattr__('num', num)
+        outputs = []
+        for _ in range(num):
+            outputs.append(input)
+
+        return outputs
+
+    def relprop(self, R, alpha = 1):
+        Z = []
+        for _ in range(self.num):
+            Z.append(self.X)
+        S = [safe_divide(r, z) for r, z in zip(R, Z)]
+        C = self.gradprop(Z, self.X, S)[0]
+
+        R = self.X * C
+
+        return R
+
+    def RAP_relprop(self, R_p):
+        def backward(R_p):
+            Z = []
+            for _ in range(self.num):
+                Z.append(self.X)
+
+            Spp = []
+            Spn = []
+
+            for z, rp, rn in zip(Z, R_p):
+                Spp.append(safe_divide(torch.clamp(rp, min=0), z))
+                Spn.append(safe_divide(torch.clamp(rp, max=0), z))
+
+            Cpp = self.gradprop(Z, self.X, Spp)[0]
+            Cpn = self.gradprop(Z, self.X, Spn)[0]
+
+            Rp = self.X * (Cpp * Cpn)
+
+            return Rp
+        if torch.is_tensor(R_p) == False:
+            idx = len(R_p)
+            tmp_R_p = R_p
+            Rp = []
+            for i in range(idx):
+                Rp_tmp = backward(tmp_R_p[i])
+                Rp.append(Rp_tmp)
+        else:
+            Rp = backward(R_p)
+        return Rp
+
+
 class Identity(nn.Identity, RelProp):
     pass
 

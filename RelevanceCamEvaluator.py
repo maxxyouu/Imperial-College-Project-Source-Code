@@ -9,6 +9,7 @@ from copy import deepcopy
 import torch
 from torch.nn.functional import softmax
 import os
+from ResNetLocal import resnet50
 from skresnet import skresnext50_32x4d
 from layers import *
 from RelevanceCamUtils import *
@@ -20,8 +21,9 @@ from torch.utils.data.sampler import SequentialSampler
 from Helper import denorm
 from EvaluatorUtils import *
 from PIL import Image
+from resnet import resnet50 as lrp_resnet50
 
-default_model_name = 'skresnext50_32x4d'
+default_model_name = 'resnet50'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model_name',
                         type=str, default=default_model_name,
@@ -89,7 +91,10 @@ else:
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
-model = skresnext50_32x4d(pretrained=False).eval()
+if default_model_name == 'resnet50':
+    model = lrp_resnet50(pretrained=False).eval()
+else:
+    model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
 model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 # load the trained weights

@@ -58,6 +58,9 @@ my_parser.add_argument('--eval_segmentation',
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
                         help='path for the imge annotation')    
+my_parser.add_argument('--headWidth',
+                        type=int, default=1,
+                        help='true indicate evaluate the segmentation performance of the cam method')
 my_parser.add_argument('--plusplusMode',
                         type=bool, action=argparse.BooleanOptionalAction,
                         help='using gradcam plusplus mode')              
@@ -78,6 +81,8 @@ print('Data Location {}'.format(args.data_location))
 if args.plusplusMode is None:
     args.plusplusMode = False # for local debug only
 print('Plus Plus Mode: {}'.format(args.plusplusMode))
+print('Head Width: {}'.format(args.headWidth))
+
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
     args.eval_segmentation = False 
@@ -96,6 +101,23 @@ if default_model_name == 'resnet50':
 else:
     model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
+
+# handle the projection head
+headWidth = args.headWidth
+assert(headWidth > 0 and headWidth <= 3)
+if headWidth == 1:
+    model.fc = Linear(model.fc.in_features, model.model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+elif headWidth == 2:
+    model.fc = Sequential(
+        Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        Linear(model.fc.in_features // 2, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    )
+elif headWidth == 3:
+    model.fc = Sequential(
+        Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        Linear(model.fc.in_features // 2, model.fc.in_features // 4, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        Linear(model.fc.in_features // 4, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    )
 model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 # load the trained weights
 model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))

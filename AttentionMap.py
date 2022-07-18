@@ -102,6 +102,9 @@ my_parser.add_argument('--data_location',
 my_parser.add_argument('--eval_segmentation',
                         type=bool, action=argparse.BooleanOptionalAction,
                         help='true indicate evaluate the segmentation performance of the cam method')
+my_parser.add_argument('--headWidth',
+                        type=int, default=1,
+                        help='true indicate evaluate the segmentation performance of the cam method')
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
                         help='path for the imge annotation')
@@ -117,6 +120,7 @@ print('Batch Size: {}'.format(args.batchSize))
 print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Data Location {}'.format(args.data_location))
+print('Head Width: {}'.format(args.headWidth))
 data_dir = args.data_location
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
@@ -132,7 +136,7 @@ print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 
 
 # model_wrapper = get_trained_model(args.model)
-model_wrapper = switch_model(args.model, False)
+model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)
 model_wrapper.load_learned_weights(args.model_weights)
 print('successfully load the model')
 model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input

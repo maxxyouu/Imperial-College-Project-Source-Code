@@ -221,9 +221,9 @@ def pytorch_dataset(batch_size, train_transforms, test_transforms):
     return result
 
 
-def switch_model(model_name, pretrain):
+def switch_model(model_name, pretrain, headWidth=1):
     if 'resnet' in model_name:
-        return Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+        return Pytorch_default_resNet(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain, headWidth=headWidth)
     if 'vgg' in model_name:
         return Pytorch_default_vgg(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
     if 'skresnet' in model_name:

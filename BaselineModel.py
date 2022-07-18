@@ -9,8 +9,8 @@ class Baseline_Model:
     https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
     """
     def __init__(self, pretrain=False, model_name='resnet18') -> None:
-        # self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain)
-        self.model = timm.create_model(model_name, pretrained=pretrain)
+        self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain)
+        # self.model = timm.create_model(model_name, pretrained=pretrain)
         # modify the model that suit our task, ie: the output layer and etc
 
     def _custom_classifier(self):
@@ -38,11 +38,25 @@ class Pytorch_default_resNet(Baseline_Model):
     Args:
         Baseline_Model (_type_): _description_
     """
-    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='resnet50') -> None:
+    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='resnet50', headWidth=1) -> None:
         super().__init__(pretrain, model_name)
 
         # modify the model to match our dataset with two class only
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        assert(headWidth > 0 and headWidth <= 3)
+        if headWidth == 1:
+            self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        elif headWidth == 2:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, num_classes, device=device, dtype=dtype)
+            )
+        elif headWidth == 3:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, self.model.fc.in_features // 4, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 4, num_classes, device=device, dtype=dtype)
+            )
+
 
 class Pytorch_default_vgg(Baseline_Model):
     def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='vgg11_bn') -> None:
@@ -94,5 +108,5 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=True)
+    net = Pytorch_default_resNet(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=True, headWidth=1)
     print(sum(p.numel() for p in net.model.parameters() if p.requires_grad))

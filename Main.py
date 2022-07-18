@@ -14,6 +14,62 @@ import timm
 from Helper import extract_args, main_executation, data_transformations, pytorch_dataset, switch_model
 import Constants
 from Helper import denorm, get_trained_model
+import argparse
+
+my_parser = argparse.ArgumentParser(description='')
+
+# Add the arguments
+my_parser.add_argument('--model',
+                        type=str, default='skresnext50_32x4d',
+                        help='model to be used for training / testing')
+my_parser.add_argument('--batchSize',
+                        type=int, default=256,
+                        help='batch size to be used for training / testing')             
+my_parser.add_argument('--epochs',
+                        type=int, default=100,
+                        help='training epochs')   
+my_parser.add_argument('--earlyStoppingPatience',
+                        type=int, default=10,
+                        help='early stopping patience to terminate the training process')   
+my_parser.add_argument('--learningRate',
+                        type=float, default=0.001,
+                        help='learning rate for training') 
+my_parser.add_argument('--pretrain',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='whether to use a pretrained model')
+my_parser.add_argument('--augNoise',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='add noise during traning')   
+my_parser.add_argument('--train',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='whether execute the script in training or eval mode')   
+my_parser.add_argument('--chkPointName',
+                        type=str, default='ckpt_epoch_100.pth', # example: ckpt_epoch_500
+                        help='the check point name')  
+my_parser.add_argument('--simClr',
+                        type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
+                        help='for simclr task') 
+my_parser.add_argument('--supCon',
+                        type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
+                        help='for supCon task') 
+my_parser.add_argument('--feat_dim',
+                        type=int, default=64, # example: ckpt_epoch_500
+                        help='feature dimension of the loaded clr model') 
+my_parser.add_argument('--head_type',
+                        type=str, default='mlp', # example: ckpt_epoch_500
+                        help='head type of the clr model') 
+my_parser.add_argument('--pickel_initial',
+                        type=str, default='crop', # example: ckpt_epoch_500
+                        help='intial name for the saved  mdel') 
+my_parser.add_argument('--folderName',
+                        type=str, default=None, # example: ckpt_epoch_500
+                        help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 
+my_parser.add_argument('--headWidth',
+                        type=int, default=1, # example: ckpt_epoch_500
+                        help='width of the projection head of the classifier') 
+
+# Execute the parse_args() method
+args = my_parser.parse_args()
 
 # set the seed for reproducibility
 rng_seed = 99
@@ -198,92 +254,89 @@ def compatible_weights(clr_weights):
         result.append((key_copy, value))
     return OrderedDict(result)
 
-if __name__ == '__main__':
+# extract argument from users
+# args = extract_args()
 
-    # extract argument from users
-    args = extract_args()
+# print statement to verify the bool arguments
+print('Pretrain Arg: {}'.format(args.pretrain))
+print('augNoise Arg: {}'.format(args.augNoise))
+print('train Arg: {}'.format(args.train))
+print('simclr: {}'.format(args.simClr))
+print('supCon: {}'.format(args.supCon))
+print('chkPointName: {}'.format(args.chkPointName))
+print('model path: {}'.format(args.folderName))
 
-    # print statement to verify the bool arguments
-    print('Pretrain Arg: {}'.format(args.pretrain))
-    print('augNoise Arg: {}'.format(args.augNoise))
-    print('train Arg: {}'.format(args.train))
-    print('simclr: {}'.format(args.simClr))
-    print('supCon: {}'.format(args.supCon))
-    print('chkPointName: {}'.format(args.chkPointName))
-    print('model path: {}'.format(args.folderName))
+train_transforms, test_transforms = data_transformations()
 
-    train_transforms, test_transforms = data_transformations()
+data_dict = pytorch_dataset(args.batchSize, train_transforms, test_transforms)
+train, train_dataloader = data_dict['train']
+val, val_dataloader = data_dict['val']
+test, test_dataloader = data_dict['test']
 
-    data_dict = pytorch_dataset(args.batchSize, train_transforms, test_transforms)
-    train, train_dataloader = data_dict['train']
-    val, val_dataloader = data_dict['val']
-    test, test_dataloader = data_dict['test']
+if args.simClr or args.supCon: # TODO
+    if args.simClr:
+        assert('Sim' in args.folderName)
+        clr_weight_path = Constants.SIMCLR_MODEL_PATH.format(args.folderName)
+    elif args.supCon:
+        assert('Sup' in args.folderName)
+        clr_weight_path = Constants.SUPCON_MODEL_PATH.format(args.folderName)
+    print(clr_weight_path)
+    assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d' and args.folderName is not None)
+    model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
+    # load the skresnext model and replace the head with a appropriate one
+    clr_model = SimClrSkResneXt(name=args.model, head=args.head_type, feat_dim=args.feat_dim) # with pretrained weight in the feature extractor
+    model_wrapper = Pytorch_default_skresnext()
+    model_wrapper.model.fc = deepcopy(clr_model.head) # NOTE: random but to be replaced with trained weights
+    saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
 
-    if args.simClr or args.supCon: # TODO
-        if args.simClr:
-            assert('Sim' in args.folderName)
-            clr_weight_path = Constants.SIMCLR_MODEL_PATH.format(args.folderName)
-        elif args.supCon:
-            assert('Sup' in args.folderName)
-            clr_weight_path = Constants.SUPCON_MODEL_PATH.format(args.folderName)
-        print(clr_weight_path)
-        assert(args.chkPointName is not None and args.model == 'skresnext50_32x4d' and args.folderName is not None)
-        model_weights_loc = os.path.join(Constants.SAVED_MODEL_PATH, clr_weight_path, args.chkPointName)
-        # load the skresnext model and replace the head with a appropriate one
-        clr_model = SimClrSkResneXt(name=args.model, head=args.head_type, feat_dim=args.feat_dim) # with pretrained weight in the feature extractor
-        model_wrapper = Pytorch_default_skresnext()
-        model_wrapper.model.fc = deepcopy(clr_model.head) # NOTE: random but to be replaced with trained weights
-        saved_model = torch.load(model_weights_loc, map_location=Constants.DEVICE) # check util.py
-
-        pickel = compatible_weights(saved_model['model'])
-        model_wrapper.model.fc = nn.Sequential(
-                nn.Linear(2048, 2048 // 2),
-                nn.ReLU(inplace=True),
-                nn.Linear(2048 // 2, 2048 // 4),
-                nn.ReLU(inplace=True),
-                nn.Linear(2048 // 4, 256)
-        )
-        model_wrapper.model.load_state_dict(pickel) # get the state dict
-        model_wrapper.model.to(Constants.DEVICE)
-        
-        # retraining start from the middle of the training head 
-        # model_wrapper.model.fc[0] = nn.Linear(model_wrapper.model.fc[0].in_features, model_wrapper.model.fc[0].out_features)
-        # model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
-        # model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, 2)
-
-        # experiment show that small width projection head works better visually
-        model_wrapper.model.fc = nn.Linear(model_wrapper.model.fc[0].in_features, 2)
-
-    elif args.train:
-        model_wrapper = switch_model(args.model, args.pretrain)
-    else:
-        model_wrapper = get_trained_model(args.model)
-
-    params = {
-        'train_data': train,
-        'loader_train': train_dataloader,
-        'val_data': val,
-        'loader_val': val_dataloader,
-        'test_data': test,
-        'loader_test': test_dataloader,
-        'model': model_wrapper,
-        'optimizer': optim.Adamax(model_wrapper.model.parameters(), lr=args.learningRate, weight_decay=1e-8),
-        'loss': nn.CrossEntropyLoss(),
-        'model_name': args.model,
-        'patience': args.earlyStoppingPatience,
-        'epochs': args.epochs,
-        'augNoise': args.augNoise,
-        'pretrain': args.pretrain,
-        'simClr': args.simClr,
-        'supCon': args.supCon,
-        'chkPointName': args.chkPointName,
-        'pickel_initial': args.pickel_initial
-    }
-
-    main = Main(params)
+    pickel = compatible_weights(saved_model['model'])
+    model_wrapper.model.fc = nn.Sequential(
+            nn.Linear(2048, 2048 // 2),
+            nn.ReLU(inplace=True),
+            nn.Linear(2048 // 2, 2048 // 4),
+            nn.ReLU(inplace=True),
+            nn.Linear(2048 // 4, 256)
+    )
+    model_wrapper.model.load_state_dict(pickel) # get the state dict
+    model_wrapper.model.to(Constants.DEVICE)
     
-    # print the number of parameters
-    print('Number of parameters: {}'.format(model_wrapper.model_size()))
-    
-    # decide the execution mode
-    main_executation(main, args.train)
+    # retraining start from the middle of the training head 
+    # model_wrapper.model.fc[0] = nn.Linear(model_wrapper.model.fc[0].in_features, model_wrapper.model.fc[0].out_features)
+    # model_wrapper.model.fc[2] = nn.Linear(model_wrapper.model.fc[2].in_features, model_wrapper.model.fc[2].out_features)
+    # model_wrapper.model.fc[4] = nn.Linear(model_wrapper.model.fc[4].in_features, 2)
+
+    # experiment show that small width projection head works better visually
+    model_wrapper.model.fc = nn.Linear(model_wrapper.model.fc[0].in_features, 2)
+elif args.train:
+    model_wrapper = switch_model(args.model, args.pretrain)
+else:
+    model_wrapper = get_trained_model(args.model)
+
+params = {
+    'train_data': train,
+    'loader_train': train_dataloader,
+    'val_data': val,
+    'loader_val': val_dataloader,
+    'test_data': test,
+    'loader_test': test_dataloader,
+    'model': model_wrapper,
+    'optimizer': optim.Adamax(model_wrapper.model.parameters(), lr=args.learningRate, weight_decay=1e-8),
+    'loss': nn.CrossEntropyLoss(),
+    'model_name': args.model,
+    'patience': args.earlyStoppingPatience,
+    'epochs': args.epochs,
+    'augNoise': args.augNoise,
+    'pretrain': args.pretrain,
+    'simClr': args.simClr,
+    'supCon': args.supCon,
+    'chkPointName': args.chkPointName,
+    'pickel_initial': args.pickel_initial
+}
+
+main = Main(params)
+
+# print the number of parameters
+print('Number of parameters: {}'.format(model_wrapper.model_size()))
+
+# decide the execution mode
+main_executation(main, args.train)

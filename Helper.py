@@ -30,60 +30,6 @@ def mu_std(data_loader):
     std = torch.sqrt(var)
     return mean, std
 
-
-def extract_args():
-    my_parser = argparse.ArgumentParser(description='')
-
-    # Add the arguments
-    my_parser.add_argument('--model',
-                            type=str, default='skresnext50_32x4d',
-                            help='model to be used for training / testing')
-    my_parser.add_argument('--batchSize',
-                            type=int, default=256,
-                            help='batch size to be used for training / testing')             
-    my_parser.add_argument('--epochs',
-                            type=int, default=100,
-                            help='training epochs')   
-    my_parser.add_argument('--earlyStoppingPatience',
-                            type=int, default=10,
-                            help='early stopping patience to terminate the training process')   
-    my_parser.add_argument('--learningRate',
-                            type=float, default=0.001,
-                            help='learning rate for training') 
-    my_parser.add_argument('--pretrain',
-                            type=bool, action=argparse.BooleanOptionalAction,
-                            help='whether to use a pretrained model')
-    my_parser.add_argument('--augNoise',
-                            type=bool, action=argparse.BooleanOptionalAction,
-                            help='add noise during traning')   
-    my_parser.add_argument('--train',
-                            type=bool, action=argparse.BooleanOptionalAction,
-                            help='whether execute the script in training or eval mode')   
-    my_parser.add_argument('--chkPointName',
-                            type=str, default='ckpt_epoch_100.pth', # example: ckpt_epoch_500
-                            help='the check point name')  
-    my_parser.add_argument('--simClr',
-                            type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
-                            help='for simclr task') 
-    my_parser.add_argument('--supCon',
-                            type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
-                            help='for supCon task') 
-    my_parser.add_argument('--feat_dim',
-                            type=int, default=64, # example: ckpt_epoch_500
-                            help='feature dimension of the loaded clr model') 
-    my_parser.add_argument('--head_type',
-                            type=str, default='mlp', # example: ckpt_epoch_500
-                            help='head type of the clr model') 
-    my_parser.add_argument('--pickel_initial',
-                            type=str, default='', # example: ckpt_epoch_500
-                            help='intial name for the saved  mdel') 
-    my_parser.add_argument('--folderName',
-                            type=str, default=None, # example: ckpt_epoch_500
-                            help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 
-    # Execute the parse_args() method
-    args = my_parser.parse_args()                                              
-    return args
-
 def extract_attention_cam_args():
     my_parser = argparse.ArgumentParser(description='')
     my_parser.add_argument('--model',

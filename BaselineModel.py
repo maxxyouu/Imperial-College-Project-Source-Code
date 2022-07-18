@@ -136,5 +136,5 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_resNet(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=True, headWidth=1)
+    net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=True, headWidth=2)
     print(sum(p.numel() for p in net.model.parameters() if p.requires_grad))

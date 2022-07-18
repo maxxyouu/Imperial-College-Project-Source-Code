@@ -308,7 +308,7 @@ if args.simClr or args.supCon: # TODO
     # experiment show that small width projection head works better visually
     model_wrapper.model.fc = nn.Linear(model_wrapper.model.fc[0].in_features, 2)
 elif args.train:
-    model_wrapper = switch_model(args.model, args.pretrain)
+    model_wrapper = switch_model(args.model, args.pretrain, headWidth=args.headWidth)
 else:
     model_wrapper = get_trained_model(args.model)
 

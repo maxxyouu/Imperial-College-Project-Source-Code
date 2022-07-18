@@ -173,9 +173,9 @@ def switch_model(model_name, pretrain, headWidth=1):
     if 'vgg' in model_name:
         return Pytorch_default_vgg(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
     if 'skresnet' in model_name:
-        return Pytorch_default_skres(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+        return Pytorch_default_skres(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain, headWidth=headWidth)
     if 'skresnext' in model_name:
-        return Pytorch_default_skresnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+        return Pytorch_default_skresnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain, headWidth=headWidth)
     if 'resnext' in model_name:
         return Pytorch_default_resnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
     print('NO MATCHED MODEL')

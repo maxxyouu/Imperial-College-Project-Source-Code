@@ -44,7 +44,7 @@ my_parser.add_argument('--train',
                         type=bool, action=argparse.BooleanOptionalAction,
                         help='whether execute the script in training or eval mode')   
 my_parser.add_argument('--chkPointName',
-                        type=str, default='ckpt_epoch_100.pth', # example: ckpt_epoch_500
+                        type=str, default='', # example: ckpt_epoch_500
                         help='the check point name')  
 my_parser.add_argument('--simClr',
                         type=bool, action=argparse.BooleanOptionalAction, # example: ckpt_epoch_500
@@ -59,7 +59,7 @@ my_parser.add_argument('--head_type',
                         type=str, default='mlp', # example: ckpt_epoch_500
                         help='head type of the clr model') 
 my_parser.add_argument('--pickel_initial',
-                        type=str, default='crop', # example: ckpt_epoch_500
+                        type=str, default='', # example: ckpt_epoch_500
                         help='intial name for the saved  mdel') 
 my_parser.add_argument('--folderName',
                         type=str, default=None, # example: ckpt_epoch_500
@@ -70,7 +70,7 @@ my_parser.add_argument('--headWidth',
 
 # Execute the parse_args() method
 args = my_parser.parse_args()
-
+args.pickel_initial += '_headWidth{}'.format(args.headWidth)
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)

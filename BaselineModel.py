@@ -9,8 +9,8 @@ class Baseline_Model:
     https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
     """
     def __init__(self, pretrain=False, model_name='resnet18') -> None:
-        self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain)
-        # self.model = timm.create_model(model_name, pretrained=pretrain)
+        # self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain) # for VGG
+        self.model = timm.create_model(model_name, pretrained=pretrain) # for resnet varient
         # modify the model that suit our task, ie: the output layer and etc
 
     def _custom_classifier(self):
@@ -77,9 +77,23 @@ class Pytorch_default_skres(Baseline_Model):
         Baseline_Model (_type_): _description_
     """
 
-    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnet34') -> None:
+    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnet34', headWidth=1) -> None:
         super().__init__(pretrain, model_name)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        # self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        assert(headWidth > 0 and headWidth <= 3)
+        if headWidth == 1:
+            self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        elif headWidth == 2:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, num_classes, device=device, dtype=dtype)
+            )
+        elif headWidth == 3:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, self.model.fc.in_features // 4, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 4, num_classes, device=device, dtype=dtype)
+            )
         
 class Pytorch_default_resnext(Baseline_Model):
     """https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/sknet.py
@@ -100,9 +114,23 @@ class Pytorch_default_skresnext(Baseline_Model):
         Baseline_Model (_type_): _description_
     """
 
-    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnext50_32x4d') -> None:
+    def __init__(self, dtype=Constants.DTYPE, device=Constants.DEVICE, num_classes=2, pretrain=False, model_name='skresnext50_32x4d', headWidth=1) -> None:
         super().__init__(pretrain, model_name)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        # self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        assert(headWidth > 0 and headWidth <= 3)
+        if headWidth == 1:
+            self.model.fc = nn.Linear(self.model.fc.in_features, num_classes, device=device, dtype=dtype)
+        elif headWidth == 2:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, num_classes, device=device, dtype=dtype)
+            )
+        elif headWidth == 3:
+            self.model.fc = nn.Sequential(
+                nn.Linear(self.model.fc.in_features, self.model.fc.in_features // 2, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 2, self.model.fc.in_features // 4, device=device, dtype=dtype),
+                nn.Linear(self.model.fc.in_features // 4, num_classes, device=device, dtype=dtype)
+            )
 
 if __name__ == '__main__':
     # print(torch. __version__)

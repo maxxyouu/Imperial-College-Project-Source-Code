@@ -1,5 +1,4 @@
 from copy import deepcopy
-from pickle import FALSE
 from collections import OrderedDict
 import torch
 from torch import nn
@@ -71,6 +70,9 @@ my_parser.add_argument('--headWidth',
 # Execute the parse_args() method
 args = my_parser.parse_args()
 args.pickel_initial += '_headWidth{}'.format(args.headWidth)
+if args.pretrain is None:
+    args.pretrain = True
+
 # set the seed for reproducibility
 rng_seed = 99
 torch.manual_seed(rng_seed)

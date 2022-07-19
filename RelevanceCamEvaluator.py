@@ -96,7 +96,7 @@ else:
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
-if default_model_name == 'resnet50':
+if args.model_name == 'resnet50':
     model = lrp_resnet50(pretrained=False).eval()
 else:
     model = skresnext50_32x4d(pretrained=False).eval()

@@ -106,7 +106,7 @@ model.num_classes = 2 #NOTE required to do CLRP and SGLRP
 headWidth = args.headWidth
 assert(headWidth > 0 and headWidth <= 3)
 if headWidth == 1:
-    model.fc = Linear(model.fc.in_features, model.model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 elif headWidth == 2:
     model.fc = Sequential(*[
         Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),

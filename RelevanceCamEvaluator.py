@@ -23,7 +23,7 @@ from EvaluatorUtils import *
 from PIL import Image
 from resnet import resnet50 as lrp_resnet50
 
-default_model_name = 'resnet50'
+default_model_name = 'skresnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model_name',
                         type=str, default=default_model_name,
@@ -47,7 +47,7 @@ my_parser.add_argument('--cam',
                         type=str, default='relevance-cam', # example: ckpt_epoch_500
                         help='select a cam') 
 my_parser.add_argument('--data_location',
-                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
+                        type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
                         help='data directory')   
 my_parser.add_argument('--alpha',
                         type=float, default=2, # example: ckpt_epoch_500
@@ -108,17 +108,16 @@ assert(headWidth > 0 and headWidth <= 3)
 if headWidth == 1:
     model.fc = Linear(model.fc.in_features, model.model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 elif headWidth == 2:
-    model.fc = Sequential(
+    model.fc = Sequential(*[
         Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
         Linear(model.fc.in_features // 2, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-    )
+    ])
 elif headWidth == 3:
-    model.fc = Sequential(
+    model.fc = Sequential(*[
         Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
         Linear(model.fc.in_features // 2, model.fc.in_features // 4, device=Constants.DEVICE, dtype=Constants.DTYPE),
         Linear(model.fc.in_features // 4, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-    )
-model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    ])
 # load the trained weights
 model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
 model.to(Constants.DEVICE)

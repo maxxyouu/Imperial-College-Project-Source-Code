@@ -681,7 +681,7 @@ class ResNet(nn.Module):
         post_softmax = softmax(x)
         if maxindex == [None]:
             maxindex = torch.argmax(x, dim=1)
-        R = torch.ones(x.shape)#.cuda()
+        R = torch.ones(x.shape).cuda()
         yt = torch.max(post_softmax)
         R = -yt * post_softmax
         for i in range(R.size(0)):

@@ -108,25 +108,47 @@ model.num_classes = 2 #NOTE required to do CLRP and SGLRP
 # handle the projection head
 headWidth = args.headWidth
 assert(headWidth > 0 and headWidth <= 3)
-if headWidth == 1:
-    model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-elif headWidth == 2:
-    model.fc = Sequential(*[
-        Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
-        ReLU(),
-        Dropout(),
-        Linear(model.fc.in_features // 2, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-    ])
-elif headWidth == 3:
-    model.fc = Sequential(*[
-        Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
-        ReLU(),
-        Dropout(),
-        Linear(model.fc.in_features // 2, model.fc.in_features // 4, device=Constants.DEVICE, dtype=Constants.DTYPE),
-        ReLU(),
-        Dropout(),
-        Linear(model.fc.in_features // 4, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-    ])
+
+if 'vgg' in args.model_name:
+    if headWidth == 1:
+        model.classifier = Linear(model.classifier[0].in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    elif headWidth == 2:
+        model.classifier = nn.Sequential(
+            nn.Linear(model.classifier[0].in_features, model.classifier[0].out_features, device=Constants.DEVICE, dtype=Constants.DTYPE),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(model.classifier[0].out_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE),  
+        )
+    elif headWidth == 3:
+        model.classifier = nn.Sequential(
+            nn.Linear(model.classifier[0].in_features, model.classifier[0].out_features, device=Constants.DEVICE, dtype=Constants.DTYPE),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(model.classifier[3].in_features, model.classifier[3].out_features, device=Constants.DEVICE, dtype=Constants.DTYPE),  
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(model.classifier[3].out_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE), 
+        )    
+else: # other models
+    if headWidth == 1:
+        model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    elif headWidth == 2:
+        model.fc = Sequential(*[
+            Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+            ReLU(),
+            Dropout(),
+            Linear(model.fc.in_features // 2, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+        ])
+    elif headWidth == 3:
+        model.fc = Sequential(*[
+            Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+            ReLU(),
+            Dropout(),
+            Linear(model.fc.in_features // 2, model.fc.in_features // 4, device=Constants.DEVICE, dtype=Constants.DTYPE),
+            ReLU(),
+            Dropout(),
+            Linear(model.fc.in_features // 4, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+        ])
 # load the trained weights
 model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
 model.to(Constants.DEVICE)

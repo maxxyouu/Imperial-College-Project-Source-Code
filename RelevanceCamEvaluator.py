@@ -22,6 +22,7 @@ from Helper import denorm
 from EvaluatorUtils import *
 from PIL import Image
 from resnet import resnet50 as lrp_resnet50
+from vgg import vgg11_bn as lrp_vgg11_bn
 
 default_model_name = 'skresnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
@@ -98,6 +99,8 @@ data_dir = args.data_location
 
 if args.model_name == 'resnet50':
     model = lrp_resnet50(pretrained=False).eval()
+elif args.model_name == 'vgg11_bn':
+    model = lrp_vgg11_bn(pretrained=False).eval()
 else:
     model = skresnext50_32x4d(pretrained=False).eval()
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
@@ -110,12 +113,18 @@ if headWidth == 1:
 elif headWidth == 2:
     model.fc = Sequential(*[
         Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        ReLU(),
+        Dropout(),
         Linear(model.fc.in_features // 2, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
     ])
 elif headWidth == 3:
     model.fc = Sequential(*[
         Linear(model.fc.in_features, model.fc.in_features // 2, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        ReLU(),
+        Dropout(),
         Linear(model.fc.in_features // 2, model.fc.in_features // 4, device=Constants.DEVICE, dtype=Constants.DTYPE),
+        ReLU(),
+        Dropout(),
         Linear(model.fc.in_features // 4, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
     ])
 # load the trained weights

@@ -9,8 +9,10 @@ class Baseline_Model:
     https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
     """
     def __init__(self, pretrain=False, model_name='resnet18') -> None:
-        # self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain) # for VGG
-        self.model = timm.create_model(model_name, pretrained=pretrain) # for resnet varient
+        if 'vgg' in model_name:
+            self.model = torch.hub.load('pytorch/vision:v0.10.0', model_name, pretrained=pretrain) # for VGG
+        else:
+            self.model = timm.create_model(model_name, pretrained=pretrain) # for resnet varient
         # modify the model that suit our task, ie: the output layer and etc
 
     def _custom_classifier(self):

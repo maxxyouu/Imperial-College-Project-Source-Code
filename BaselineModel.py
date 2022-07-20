@@ -85,10 +85,10 @@ class Pytorch_default_vgg(Baseline_Model):
                 nn.Linear(self.model.classifier[0].in_features, self.model.classifier[0].out_features, device=device, dtype=dtype),
                 nn.ReLU(),
                 nn.Dropout(),
-                nn.Linear(self.model.classifier[1].in_features, self.model.classifier[1].out_features, device=device, dtype=dtype),  
+                nn.Linear(self.model.classifier[3].in_features, self.model.classifier[3].out_features, device=device, dtype=dtype),  
                 nn.ReLU(),
                 nn.Dropout(),
-                nn.Linear(self.model.classifier[1].out_features, num_classes, device=device, dtype=dtype), 
+                nn.Linear(self.model.classifier[3].out_features, num_classes, device=device, dtype=dtype), 
             )          
 
 class Pytorch_default_skres(Baseline_Model):
@@ -163,5 +163,5 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_vgg(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=False, headWidth=3)
+    net = Pytorch_default_resNet(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=False, headWidth=3)
     print(sum(p.numel() for p in net.model.parameters() if p.requires_grad))

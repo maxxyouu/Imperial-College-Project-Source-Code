@@ -158,16 +158,12 @@ print('Model successfully loaded')
 target_layer = args.target_layer
 if target_layer == 'layer2':
     target_layer = model.layer2
-    size = 29
 elif target_layer == 'layer3':
     target_layer = model.layer3
-    size = 15
 elif target_layer == 'layer4':
     target_layer = model.layer4
-    size = 8
 else:
     target_layer = model.layer1
-    size = 58
 
 value = dict()
 def forward_hook(module, input, output):

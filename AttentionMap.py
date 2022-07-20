@@ -138,6 +138,7 @@ print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 # model_wrapper = get_trained_model(args.model)
 model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)
 model_wrapper.load_learned_weights(args.model_weights)
+model_wrapper.model.eval() # put the model into evaluation mode for the dropout layer
 print('successfully load the model')
 model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input
 # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]

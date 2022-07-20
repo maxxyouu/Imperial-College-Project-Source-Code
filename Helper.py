@@ -177,7 +177,7 @@ def switch_model(model_name, pretrain, headWidth=1):
     if 'skresnext' in model_name:
         return Pytorch_default_skresnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain, headWidth=headWidth)
     if 'resnext' in model_name:
-        return Pytorch_default_resnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain)
+        return Pytorch_default_resnext(device=Constants.DEVICE, dtype=Constants.DTYPE, model_name=model_name, pretrain=pretrain, headWidth=headWidth)
     print('NO MATCHED MODEL')
 
 def get_trained_model(model_name):

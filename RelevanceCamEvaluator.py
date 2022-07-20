@@ -98,11 +98,11 @@ print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 data_dir = args.data_location
 
 if args.model_name == 'resnet50':
-    model = lrp_resnet50(pretrained=False).eval()
+    model = lrp_resnet50(pretrained=False)
 elif args.model_name == 'vgg11_bn':
-    model = lrp_vgg11_bn(pretrained=False).eval()
+    model = lrp_vgg11_bn(pretrained=False)
 else:
-    model = skresnext50_32x4d(pretrained=False).eval()
+    model = skresnext50_32x4d(pretrained=False)
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP
 
 # handle the projection head
@@ -130,6 +130,7 @@ elif headWidth == 3:
 # load the trained weights
 model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
 model.to(Constants.DEVICE)
+model.eval() # after loading the model, put the model into evaluation mode
 print('Model successfully loaded')
 
 target_layer = args.target_layer

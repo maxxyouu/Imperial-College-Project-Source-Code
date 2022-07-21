@@ -66,7 +66,7 @@ def max_min_lrp_normalize(Ac):
     Ac_shape = Ac.shape
     AA = Ac.view(Ac.size(0), -1)
     AA -= AA.min(1, keepdim=True)[0]
-    AA /= AA.max(1, keepdim=True)[0]
+    AA /= (1e-7 + AA.max(1, keepdim=True)[0])
     scaled_ac = AA.view(Ac_shape)
     return scaled_ac
 

@@ -292,7 +292,8 @@ def evaluate_segmentation_metrics(x, annotations, args):
     if aggregation:
         cams = [resize_cam(map) for map in r_cam]
         # aggregate across the cam axis by performing elemenwise max ops and return a single cam object
-        cam = np.amax(np.stack(cams, axis=0), axis=0)
+        cam = max_min_lrp_normalize(torch.tensor(np.average(np.stack(cams, axis=0), axis=0)))
+        cam = cam.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
     else: 
         cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)

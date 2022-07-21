@@ -6,10 +6,12 @@ import cv2
 from Helper import max_min_lrp_normalize
 from RelevanceCamUtils import *
 from torchvision import transforms
+import torch.nn.functional as F
 
 
 def resize_cam(cam):
     # first normalize the cam results
+    cam = F.relu(cam)
     cam = max_min_lrp_normalize(cam)
     if Constants.WORK_ENV == 'COLAB':
         cam = cam.cpu().detach().numpy()

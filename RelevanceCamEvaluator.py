@@ -86,7 +86,7 @@ print('Head Width: {}'.format(args.headWidth))
 
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_segmentation = True 
+    args.eval_segmentation = False 
 if args.eval_segmentation is None or args.eval_segmentation == False:
     args.eval_segmentation = False
 else:
@@ -233,11 +233,20 @@ def evaluate_model_metrics(x, args):
             layer_explanations.append(resize_cam(cams[0]))
             Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1) # only care about the score for the true label
         cam = layer_explanations[layer_idx_mapper[args.target_layer]] # retrieve the target layer according to the argument provided for the following code
+
+        # TODO: make sure normalize it before
     else:
         cams, Yci = model(x, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode,  alpha=args.alpha)
         Yci = softmax(Yci, dim=1)
-        cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
         Yci = Yci[range(Yci.shape[0]), y].unsqueeze(1)
+        # cam = resize_cam(cams[0]) # cam map is one dimension in the channel dimention
+        if aggregation:
+            cams = [resize_cam(map) for map in cams]
+            # aggregate across the cam axis by performing elemenwise max ops and return a single cam object
+            cam = max_min_lrp_normalize(torch.tensor(np.average(np.stack(cams, axis=0), axis=0)))
+            cam = cam.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else cam.detach().numpy()
+        else: 
+            cam = resize_cam(cams[0]) # [batch_size, width, heigh]
     
     img = resize_img(deepcopy(denorm(x)))
     # explanation_map = preprocess_image(explanation_map) # transform the data
@@ -293,7 +302,7 @@ def evaluate_segmentation_metrics(x, annotations, args):
         cams = [resize_cam(map) for map in r_cam]
         # aggregate across the cam axis by performing elemenwise max ops and return a single cam object
         cam = max_min_lrp_normalize(torch.tensor(np.average(np.stack(cams, axis=0), axis=0)))
-        cam = cam.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
+        cam = cam.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else cam.detach().numpy()
     else: 
         cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)

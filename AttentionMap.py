@@ -171,7 +171,6 @@ ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
 iou_logger = IOU_logger(0)
 ac_logger = Average_confidence_logger()
 
-
 def evaluate_segmentation_results(x, cams, args, annotations):
     """_summary_
 

@@ -33,8 +33,8 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
-                        type=str, default='layer4',
-                        help='cam layer for explanation: target layer to be used can be according to a metrics with --targe_layer = None') 
+                        type=str, default='layer3,layer4',
+                        help='sample: 3,4') 
 my_parser.add_argument('--batch_size',
                         type=int, default=3,
                         help='batch size to be used for training / testing') 
@@ -86,7 +86,7 @@ print('Head Width: {}'.format(args.headWidth))
 
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_segmentation = False 
+    args.eval_segmentation = True 
 if args.eval_segmentation is None or args.eval_segmentation == False:
     args.eval_segmentation = False
 else:
@@ -155,6 +155,7 @@ model.to(Constants.DEVICE)
 model.eval() # after loading the model, put the model into evaluation mode
 print('Model successfully loaded')
 
+aggregation = False
 target_layer = args.target_layer
 if target_layer == 'layer2':
     target_layer = model.layer2
@@ -162,8 +163,11 @@ elif target_layer == 'layer3':
     target_layer = model.layer3
 elif target_layer == 'layer4':
     target_layer = model.layer4
-else:
+elif target_layer == 'layer1':
     target_layer = model.layer1
+else: # layer aggregation case
+    # mode all and use the appropriate one
+    aggregation = True
 
 value = dict()
 def forward_hook(module, input, output):
@@ -188,8 +192,19 @@ image_order_book, img_index = data.imgs, 0
 layers = ['layer1', 'layer2', 'layer3', 'layer4']
 layer_idx_mapper = {'layer1': 0, 'layer2': 1, 'layer3': 2, 'layer4': 3}
 
-forward_handler = target_layer.register_forward_hook(forward_hook)
-backward_handler = target_layer.register_full_backward_hook(backward_hook)
+
+if not aggregation:
+    forward_handler = target_layer.register_forward_hook(forward_hook)
+    backward_handler = target_layer.register_full_backward_hook(backward_hook)
+else:
+    layers = args.target_layer.split(',')
+    fhs, bhs = [], []
+    for layer in layers:
+        fh = getattr(model, layer).register_forward_hook(forward_hook)
+        bh = getattr(model, layer).register_full_backward_hook(backward_hook)
+        fhs.append(fh)
+        bhs.append(bh)
+
 print('Registered Hooks')
 
 evaluate_inverse_threshold = False
@@ -262,9 +277,6 @@ def evaluate_model_metrics(x, args):
         ac_logger.compute_and_update(Yci, Oci)
         print('Progress: A.C {}'.format(ac_logger.current_metrics))
 
-    forward_handler.remove()
-    backward_handler.remove()
-
 
 def evaluate_segmentation_metrics(x, annotations, args):
     """using intersectin over union as a metric to evaluate the segmentation performance
@@ -277,7 +289,12 @@ def evaluate_segmentation_metrics(x, annotations, args):
     """
     centerCrop = transforms.CenterCrop(230)
     r_cam, logit_scores = model(x, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode,  alpha=args.alpha)
-    cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
+    if aggregation:
+        cams = [resize_cam(map) for map in r_cam]
+        # aggregate across the cam axis by performing elemenwise max ops and return a single cam object
+        cam = np.amax(np.stack(cams, axis=0), axis=0)
+    else: 
+        cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)
     # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')
     # plt.imshow(np.transpose(denorm(x[0,:]), (1,2,0)), alpha=.5)
@@ -323,6 +340,13 @@ for i, (x, y) in enumerate(dataloader):
     
     img_index += x.shape[0]
 
+if not aggregation:
+    forward_handler.remove()
+    backward_handler.remove()
+else:
+    for fh, bh in zip(fhs, bhs):
+        fh.remove()
+        bh.remove()
 
 # print the metrics results
 if not args.eval_segmentation and not evaluate_inverse_threshold:

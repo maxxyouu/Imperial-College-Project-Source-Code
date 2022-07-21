@@ -31,9 +31,13 @@ def define_model_dir_path(args):
         model_dir_name += '_noise{}_iters{}'.format(args.std, args.iterations)
     return model_dir_name
 
-# TODO: the following only valid for resnet 50 and resnext 50
+# TODO: the following only valid for resnet and its variant
 def target_layers(model, layer_nums):
-    return [getattr(model, 'layer'+'{}'.format(layer_nums))[-1]]
+    results = []
+    layers = layer_nums.split(',')
+    for layer_num in layers:# in layer number order
+        results.append(getattr(model, 'layer'+'{}'.format(layer_num))[-1])
+    return results
 
 def get_targets(positive):
     cam_targets = None
@@ -85,7 +89,7 @@ my_parser.add_argument('--cam',
                         type=str, default='gradcam',
                         help='cam name for explanation') 
 my_parser.add_argument('--layers',
-                        type=int, default=4,
+                        type=str, default='3,4',
                         help='cam name for explanation') 
 my_parser.add_argument('--batchSize',
                         type=int, default=3,

@@ -202,8 +202,10 @@ class BaseCAM:
 
     def aggregate_multi_layers(self, cam_per_target_layer: np.ndarray) -> np.ndarray:
         cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1) #[ # imgs, # of layers (cams), x_dim, y_dim], where x_dim=y_dim=230
-        dense_avg_result = self.bilateral_dense_cam(cam_per_target_layer)
-        cam_per_target_layer = np.maximum(dense_avg_result, 0) # relu act
+        # dense_avg_result = self.bilateral_dense_cam(cam_per_target_layer)
+        # cam_per_target_layer = np.maximum(dense_avg_result, 0) # relu act
+        cam_per_target_layer = np.amax(cam_per_target_layer, axis=1)
+        # cam_per_target_layer = np.maximum(dense_avg_result, 0)
         return scale_cam_image(cam_per_target_layer)
 
         # do dense averging before relu, intuition: relu at the end to keep as much averge detail as possible

@@ -330,7 +330,7 @@ def evaluate_segmentation_metrics(x, annotations, args):
     union = batch_cam_mask + batch_aggregated_masks
     iou_logger.update(overlap.sum(), union.sum())
     # print('current iou: {}'.format(iou_logger.current_iou))
-    print('current overlap: {}; current union: {}; overlap'.format(iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
+    print('current overlap: {}; current overlap: {}; current union: {}'.format(iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
 
 for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index

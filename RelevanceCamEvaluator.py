@@ -329,7 +329,8 @@ def evaluate_segmentation_metrics(x, annotations, args):
     overlap = batch_cam_mask * batch_aggregated_masks
     union = batch_cam_mask + batch_aggregated_masks
     iou_logger.update(overlap.sum(), union.sum())
-    print('current iou: {}'.format(iou_logger.current_iou))
+    # print('current iou: {}'.format(iou_logger.current_iou))
+    print('current overlap: {}; current union: {}; overlap'.format(iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
 
 for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index
@@ -360,11 +361,11 @@ else:
 
 # print the metrics results
 if not args.eval_segmentation and not evaluate_inverse_threshold:
-    print('{};  Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
+    print('{}; Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
 elif evaluate_inverse_threshold:
     print('{};  Average Confidence: {}'.format(args.target_layer, ac_logger.get_avg()))
 else:
-    print('{}, IoU: {}'.format(args.target_layer, iou_logger.get_avg()))
+    print('{}, Total Intersection: {}; Total Union:{}; IoU: {}'.format(args.target_layer, iou_logger.overlap, iou_logger.union, iou_logger.get_avg()))
 
 # for j in range(cam.shape[0]):
 #     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')

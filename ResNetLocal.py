@@ -553,55 +553,58 @@ class ResNet(nn.Module):
 
         r_cams = []
 
+        #TODO: THERE IS BUG IN HERE, NOT WORK FOR SINGLE LAYER
         # LAYER 4 CAM
-        if plusplusMode:
-            r_weight4 = _lpr_plusplus_weights(R4, layer4)
-        else:
-            r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
-        r_cam4 = layer4 * r_weight4
-        # sum up the attention map
-        r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
         if 'layer4' in mode:
+            if plusplusMode:
+                r_weight4 = _lpr_plusplus_weights(R4, layer4)
+            else:
+                r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
+            r_cam4 = layer4 * r_weight4
+            # sum up the attention map
+            r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
             r_cams.insert(0, r_cam4)
         if len(r_cams) == len(mode):
             return r_cams, z
 
         # LAYER 3 CAM
-        R3 = self.layer4.relprop(R4, alpha) # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
-        if plusplusMode:
-            r_weight3 = _lpr_plusplus_weights(R3, layer3)
-        else:
-            r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
-        r_cam3 = layer3 * r_weight3
-        r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
         if 'layer3' in mode:
+            R3 = self.layer4.relprop(R4, alpha) # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
+            if plusplusMode:
+                r_weight3 = _lpr_plusplus_weights(R3, layer3)
+            else:
+                r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
+            r_cam3 = layer3 * r_weight3
+            r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
             r_cams.insert(0, r_cam3)
+
         if len(r_cams) == len(mode):
             return r_cams, z
 
         # LAYER 2 CAM
-        R2 = self.layer3.relprop(R3, alpha)
-        if plusplusMode:
-            r_weight2 = _lpr_plusplus_weights(R2, layer2)
-        else:
-            r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
-        r_cam2 = layer2 * r_weight2
-        r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)   
         if 'layer2' in mode:
+            R2 = self.layer3.relprop(R3, alpha)
+            if plusplusMode:
+                r_weight2 = _lpr_plusplus_weights(R2, layer2)
+            else:
+                r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
+            r_cam2 = layer2 * r_weight2
+            r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)   
             r_cams.insert(0, r_cam2)
         if len(r_cams) == len(mode):
             return r_cams, z
 
         # LAYER 1 CAM
-        R1 = self.layer2.relprop(R2, alpha)
-        if plusplusMode:
-            r_weight1 = _lpr_plusplus_weights(R1, layer1)
-        else:
-            r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
-        r_cam1 = layer1 * r_weight1
-        r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
         if 'layer1' in mode:
+            R1 = self.layer2.relprop(R2, alpha)
+            if plusplusMode:
+                r_weight1 = _lpr_plusplus_weights(R1, layer1)
+            else:
+                r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
+            r_cam1 = layer1 * r_weight1
+            r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
             r_cams.insert(0, r_cam1)
+
         if len(r_cams) == len(mode):
             return r_cams, z
 

@@ -63,8 +63,8 @@ def generate_cam_overlay(x, args, cam, cam_targets):
 
 def threshold(x):
     # NOTE: threshold per images
-    mean_ = np.mean(x, axis=(2, 3), keepdims=True)
-    std_ = np.std(x, axis=(2,3), keepdims=True)
+    mean_ = np.mean(x, axis=(1, 2), keepdims=True)
+    std_ = np.std(x, axis=(1,2), keepdims=True)
     thresh = mean_ +std_
     x = (x>thresh)
     return x

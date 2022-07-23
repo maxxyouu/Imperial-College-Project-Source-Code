@@ -553,6 +553,7 @@ class ResNet(nn.Module):
 
         r_cams = []
 
+        #TODO: THERE IS BUG IN HERE, NOT WORK FOR SINGLE LAYER
         # LAYER 4 CAM
         if 'layer4' in mode:
             if plusplusMode:
@@ -567,8 +568,9 @@ class ResNet(nn.Module):
             return r_cams, z
 
         # LAYER 3 CAM
+        R3 = self.layer4.relprop(R4, alpha)
         if 'layer3' in mode:
-            R3 = self.layer4.relprop(R4, alpha) # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
+             # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
             if plusplusMode:
                 r_weight3 = _lpr_plusplus_weights(R3, layer3)
             else:
@@ -581,8 +583,9 @@ class ResNet(nn.Module):
             return r_cams, z
 
         # LAYER 2 CAM
+        R2 = self.layer3.relprop(R3, alpha)
         if 'layer2' in mode:
-            R2 = self.layer3.relprop(R3, alpha)
+            
             if plusplusMode:
                 r_weight2 = _lpr_plusplus_weights(R2, layer2)
             else:
@@ -594,8 +597,9 @@ class ResNet(nn.Module):
             return r_cams, z
 
         # LAYER 1 CAM
+        R1 = self.layer2.relprop(R2, alpha)
         if 'layer1' in mode:
-            R1 = self.layer2.relprop(R2, alpha)
+            
             if plusplusMode:
                 r_weight1 = _lpr_plusplus_weights(R1, layer1)
             else:

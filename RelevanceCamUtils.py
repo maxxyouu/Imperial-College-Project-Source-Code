@@ -34,8 +34,9 @@ def tensor2image(x, i =0):
     return x
 
 def threshold(x, inverse=False):
-    mean_ = x.mean()
-    std_ = x.std()
+    # NOTE: threshold per images
+    mean_ = np.mean(x, axis=(2, 3), keepdims=True)
+    std_ = np.std(x, axis=(2,3), keepdims=True)
     thresh = mean_ +std_
     if inverse:
         x = (x <= thresh)

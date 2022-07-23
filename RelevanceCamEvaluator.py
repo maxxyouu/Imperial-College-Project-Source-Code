@@ -36,7 +36,7 @@ my_parser.add_argument('--target_layer',
                         type=str, default='layer3,layer4',
                         help='sample: 3,4') 
 my_parser.add_argument('--batch_size',
-                        type=int, default=3,
+                        type=int, default=1,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
@@ -86,7 +86,7 @@ print('Head Width: {}'.format(args.headWidth))
 
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_segmentation = False 
+    args.eval_segmentation = True 
 if args.eval_segmentation is None or args.eval_segmentation == False:
     args.eval_segmentation = False
 else:
@@ -308,7 +308,7 @@ def evaluate_segmentation_metrics(x, annotations, args):
     batch_cam_mask = threshold(cam).squeeze(1)
     # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')
     # plt.imshow(np.transpose(denorm(x[0,:]), (1,2,0)), alpha=.5)
-    #NOTE: we might want to igore the one that is wrongly classified.
+    #NOTE: The follow is correct
     batch_aggregated_masks = []
     for per_img_annotation in annotations:
         loaded_npy_masks = [centerCrop(torch.tensor(np.load(a) // 255, device=Constants.DEVICE, dtype=torch.long)) for a in per_img_annotation] # convert to tensor and center crop
@@ -341,6 +341,7 @@ for i, (x, y) in enumerate(dataloader):
 
         img_names = [image_order_book[img_index + k][0].split('/')[-1] for k in range(x.shape[0])]
         batch_annotations = [] # list of list of annotation
+        print('images in batch: {}'.format(img_names))
         for name in img_names:
             per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))
             per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]

@@ -62,8 +62,9 @@ def generate_cam_overlay(x, args, cam, cam_targets):
     return grayscale_cam
 
 def threshold(x):
-    mean_ = x.mean()
-    std_ = x.std()
+    # NOTE: threshold per images
+    mean_ = np.mean(x, axis=(2, 3), keepdims=True)
+    std_ = np.std(x, axis=(2,3), keepdims=True)
     thresh = mean_ +std_
     x = (x>thresh)
     return x

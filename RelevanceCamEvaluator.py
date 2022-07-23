@@ -341,7 +341,6 @@ for i, (x, y) in enumerate(dataloader):
 
         img_names = [image_order_book[img_index + k][0].split('/')[-1] for k in range(x.shape[0])]
         batch_annotations = [] # list of list of annotation
-        print('images in batch: {}'.format(img_names))
         for name in img_names:
             per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))
             per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]

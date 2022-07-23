@@ -522,6 +522,21 @@ class ResNet(nn.Module):
             R = self.dropout.relprop(R, alpha)
         R4 = self.global_pool.relprop(R, alpha)
 
+        def _lpr_xgrad_weights(grads, activations):
+           # convert to numpy
+            grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
+            activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
+
+
+            sum_activations = np.sum(activations, axis=(2, 3))
+            eps = 1e-7
+            # try relu(grads) if needed
+            weights = grads * activations / \
+                (sum_activations[:, :, None, None] + eps)
+            weights = np.sum(weights, axis=(2, 3), keepdims=True)
+            return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
+
+
         def _lpr_plusplus_weights(grads, activations):
             """
 
@@ -572,7 +587,7 @@ class ResNet(nn.Module):
         if 'layer3' in mode:
              # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
             if plusplusMode:
-                r_weight3 = _lpr_plusplus_weights(R3, layer3)
+                r_weight3 = _lpr_xgrad_weights(R3, layer3)
             else:
                 r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
             r_cam3 = layer3 * r_weight3
@@ -587,7 +602,7 @@ class ResNet(nn.Module):
         if 'layer2' in mode:
             
             if plusplusMode:
-                r_weight2 = _lpr_plusplus_weights(R2, layer2)
+                r_weight2 = _lpr_xgrad_weights(R2, layer2)
             else:
                 r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
             r_cam2 = layer2 * r_weight2
@@ -601,7 +616,7 @@ class ResNet(nn.Module):
         if 'layer1' in mode:
             
             if plusplusMode:
-                r_weight1 = _lpr_plusplus_weights(R1, layer1)
+                r_weight1 = _lpr_xgrad_weights(R1, layer1)
             else:
                 r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
             r_cam1 = layer1 * r_weight1

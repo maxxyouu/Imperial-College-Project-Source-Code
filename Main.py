@@ -66,10 +66,17 @@ my_parser.add_argument('--folderName',
 my_parser.add_argument('--headWidth',
                         type=int, default=1, # example: ckpt_epoch_500
                         help='width of the projection head of the classifier') 
+my_parser.add_argument('--layerDropout',
+                        type=bool, action=argparse.BooleanOptionalAction, 
+                        help='add one dropout layer to each stage')                   
+my_parser.add_argument('--dropoutRate',
+                        type=float, default=0.1, 
+                        help='with layerDropout being true, use this')         
 
 # Execute the parse_args() method
 args = my_parser.parse_args()
 args.pickel_initial += '_headWidth{}'.format(args.headWidth)
+args.pickel_initial += '_withLayerDropout_rate{}'.format(args.dropoutRate) if args.layerDropout else ''
 if args.pretrain is None:
     args.pretrain = True
 
@@ -256,9 +263,6 @@ def compatible_weights(clr_weights):
         result.append((key_copy, value))
     return OrderedDict(result)
 
-# extract argument from users
-# args = extract_args()
-
 # print statement to verify the bool arguments
 print('Pretrain Arg: {}'.format(args.pretrain))
 print('augNoise Arg: {}'.format(args.augNoise))
@@ -267,6 +271,8 @@ print('simclr: {}'.format(args.simClr))
 print('supCon: {}'.format(args.supCon))
 print('chkPointName: {}'.format(args.chkPointName))
 print('model path: {}'.format(args.folderName))
+print('layer dropout {}'.format(args.layerDropout))
+print('dropout rate {}'.format(args.dropoutRate))
 
 train_transforms, test_transforms = data_transformations()
 

@@ -23,6 +23,7 @@ from EvaluatorUtils import *
 from PIL import Image
 from resnet import resnet50 as lrp_resnet50
 from vgg import vgg11_bn as lrp_vgg11_bn
+from resnet import resnet152 as lrp_resnet152
 
 default_model_name = 'skresnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
@@ -30,7 +31,7 @@ my_parser.add_argument('--model_name',
                         type=str, default=default_model_name,
                         help='model name to be used for model retrival and weight replacement') 
 my_parser.add_argument('--model_weights',
-                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
+                        type=str, default='',
                         help='Destination for the model weights') 
 my_parser.add_argument('--target_layer',
                         type=str, default='layer3,layer4',
@@ -69,6 +70,9 @@ args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
+# default model weight destination
+if not args.model_weights:
+    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_pretrain.pt')
 print('Model Weight Destination: {}'.format(args.model_weights))
 print('Target Layer: {}'.format(args.target_layer))
 print('Batch Size: {}'.format(args.batch_size))
@@ -101,6 +105,8 @@ if args.model_name == 'resnet50':
     model = lrp_resnet50(pretrained=False)
 elif args.model_name == 'vgg11_bn':
     model = lrp_vgg11_bn(pretrained=False)
+elif args.model_name == 'resnet152':
+    model = lrp_resnet152(pretrained=False)
 else:
     model = skresnext50_32x4d(pretrained=False)
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP

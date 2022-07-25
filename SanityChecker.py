@@ -37,10 +37,10 @@ my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
                         help='Destination for the model weights')
 my_parser.add_argument('--independentRandomFolder',
-                        type=str, default='',
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'independentRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--cascadingRandomFolder',
-                        type=str, default='',
+                        type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
                         type=str, default='cascade',
@@ -72,10 +72,10 @@ dataloader = DataLoader(data, batch_size=args.batch_size, sampler=sequentialSamp
 image_order_book, img_index = data.imgs, 0
 
 # create folder for independent weight randomization and cascading weight randomization
-# if not os.path.exists(args.independentRandomFolder):
-#     os.makedirs(args.independentRandomFolder)
-# if not os.path.exists(args.cascadingRandomFolder):
-#     os.makedirs(args.cascadingRandomFolder)
+if not os.path.exists(args.independentRandomFolder):
+    os.makedirs(args.independentRandomFolder)
+if not os.path.exists(args.cascadingRandomFolder):
+    os.makedirs(args.cascadingRandomFolder)
 
 # helper function for the following
 def randomize_layer_weights(trained_weights, layer_name='fc.'):
@@ -146,19 +146,22 @@ destination = args.cascadingRandomFolder
 # model.eval() # after loading the model, put the model into evaluation mode
 # print('Model successfully loaded')
 
-def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_names):
+def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_names, dest_folder):
+    global img_index
+
+    # assume that layer_names and randomized_weights are of the same order
     for randomized_layer_name, custom_randomized_weights in zip(layer_names, randomized_weights):
         model.load_state_dict(custom_randomized_weights)
         model.to(Constants.DEVICE)
         model.eval() # after loading the model, put the model into evaluation mode
-        print('Model successfully loaded')
-        r_cams, output = model(x, 'layer1', target_class=y, internal=False, alpha=CHOSEN_ALPHA)
+        r_cams, _ = model(x, 'layer1', target_class=y, internal=False, alpha=CHOSEN_ALPHA)
 
         for i in range(x.shape[0]):
 
             # create a desintation folder using the sample name
             sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
-
+            dest = os.path.join(dest_folder, '0' if y[i].item() == 0 else '1', sample_name)
+            
             img = x[i, :]
             img = np.transpose(img, (1,2,0))
             if Constants.WORK_ENV == 'COLAB':
@@ -180,9 +183,8 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             mask = plt.imshow(r_cam, cmap='seismic')
             overlayed_image = plt.imshow(img, alpha=.5)
             plt.axis('off')
-            plt.savefig(os.path.join(destination, randomized_layer_name+'.png'))
+            plt.savefig(os.path.join(dest, randomized_layer_name+'.png'))
 
-            global img_index
             img_index += 1
 
 for i, (x, y) in enumerate(dataloader):
@@ -192,6 +194,6 @@ for i, (x, y) in enumerate(dataloader):
     
     # for the cascading case
     if args.sanityCheckMode == 'cascade':
-        generate_cam_from_randomized_weights(x, y, model, cascade_randomized_weights, layer_names)
+        generate_cam_from_randomized_weights(x, y, model, cascade_randomized_weights, layer_names, dest_folder=args.cascadingRandomFolder)
     elif args.sanityCheckMode == 'independent':
-        generate_cam_from_randomized_weights(x, y, model, independent_randomized_weights, layer_names)
+        generate_cam_from_randomized_weights(x, y, model, independent_randomized_weights, layer_names, dest_folder=args.independentRandomFolder)

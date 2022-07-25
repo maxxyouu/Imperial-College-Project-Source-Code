@@ -168,8 +168,8 @@ for x, y in dataloader:
         # img = np.swapaxes(img, 0, 2) # 2, 1, 0
         # img = np.swapaxes(img, 0, 1) # 1, 2, 0
         img = np.transpose(img, (1,2,0))
-        if Constants.WORK_ENV == 'COLAB':
-            img = img.cpu().detach().numpy()
+        img = img.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else img.detach().numpy()
+        
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # save the original image in parallel
@@ -184,10 +184,7 @@ for x, y in dataloader:
         old_level = logger.level
         logger.setLevel(100)
 
-        if Constants.WORK_ENV == 'COLAB':
-            r_cam = r_cams[i, :].reshape(size, size).cpu().detach().numpy()
-        else:
-            r_cam = r_cams[i, :].reshape(size, size).detach().numpy()
+        r_cam = r_cams[i, :].reshape(58, 58).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else r_cams[i, :].reshape(58, 58).detach().numpy()
         r_cam = cv2.resize(r_cam, (230, 230))
         mask = plt.imshow(r_cam, cmap='seismic')
         overlayed_image = plt.imshow(img, alpha=.5)

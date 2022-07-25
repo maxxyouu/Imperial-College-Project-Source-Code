@@ -1,9 +1,11 @@
 import argparse
 from typing import OrderedDict
 import torch
+import torchvision
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SequentialSampler
+from Helper import denorm
 from skresnet import skresnext50_32x4d
 import os
 import Constants
@@ -13,6 +15,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import logging
+from EvaluatorUtils import *
 
 my_parser = argparse.ArgumentParser(description='')
 
@@ -43,7 +46,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='cascade',
+                        type=str, default='independent',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -154,18 +157,24 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
         model.load_state_dict(custom_randomized_weights)
         model.to(Constants.DEVICE)
         model.eval() # after loading the model, put the model into evaluation mode
-        r_cams, _ = model(x, 'layer1', target_class=y, internal=False, alpha=CHOSEN_ALPHA)
+        internal_R_cams, _ = model(x, 'layer1', plusplusMode=True, target_class=y, internal=False, alpha=CHOSEN_ALPHA)
+        r_cams = internal_R_cams[0]
+        r_cams = max_min_lrp_normalize(r_cams)
 
-        for i in range(x.shape[0]):
+        imgs = denorm(x)
+        for i in range(imgs.shape[0]):
 
             # create a desintation folder using the sample name
-            sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
+            sample_name = image_order_book[img_index + i][0].split('/')[-1] # get the image name from the dataset
             dest = os.path.join(dest_folder, '0' if y[i].item() == 0 else '1', sample_name)
-            
-            img = x[i, :]
+            if not os.path.exists(dest):
+                os.makedirs(dest)
+                # TODO: save the original cam
+                torchvision.utils.save_image(imgs[i, :], os.path.join(dest, 'original.jpg'))
+
+            img = imgs[i, :]
             img = np.transpose(img, (1,2,0))
-            if Constants.WORK_ENV == 'COLAB':
-                img = img.cpu().detach().numpy()
+            img = img.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else img.detach().numpy()
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             plt.ioff()
@@ -174,18 +183,13 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             old_level = logger.level
             logger.setLevel(100)
 
-            if Constants.WORK_ENV == 'COLAB':
-                r_cam = r_cams[i, :].reshape(58, 58).cpu().detach().numpy()
-            else:
-                r_cam = r_cams[i, :].reshape(58, 58).detach().numpy()
-
+            r_cam = r_cams[i, :].reshape(58, 58).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else r_cams[i, :].reshape(58, 58).detach().numpy()
             r_cam = cv2.resize(r_cam, (230, 230))
             mask = plt.imshow(r_cam, cmap='seismic')
             overlayed_image = plt.imshow(img, alpha=.5)
             plt.axis('off')
-            plt.savefig(os.path.join(dest, randomized_layer_name+'.png'))
-
-            img_index += 1
+            image_name = '{}.png'.format(randomized_layer_name[:-1])
+            plt.savefig(os.path.join(dest, image_name))
 
 for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index
@@ -197,3 +201,5 @@ for i, (x, y) in enumerate(dataloader):
         generate_cam_from_randomized_weights(x, y, model, cascade_randomized_weights, layer_names, dest_folder=args.cascadingRandomFolder)
     elif args.sanityCheckMode == 'independent':
         generate_cam_from_randomized_weights(x, y, model, independent_randomized_weights, layer_names, dest_folder=args.independentRandomFolder)
+    
+    img_index += x.shape[0]

@@ -378,7 +378,7 @@ class ResNet(nn.Module):
 
         self.init_weights(zero_init_last=zero_init_last)
 
-        self.dropout = Dropout(p=float(self.drop_rate))
+        # self.dropout = Dropout(p=float(self.drop_rate))
 
     @torch.jit.ignore
     def init_weights(self, zero_init_last=True):
@@ -428,8 +428,8 @@ class ResNet(nn.Module):
 
     def forward_head(self, x, pre_logits: bool = False, mode='output'):
         x = self.global_pool(x)
-        if self.drop_rate:
-            x = self.dropout(x)
+        # if self.drop_rate:
+            # x = self.dropout(x)
         return x if pre_logits else self.fc(x)
 
     def forward(self, x, mode='output', target_class = [None], plusplusMode=False, lrp='CLRP', internal=False, attendCAM={}, alpha=2):
@@ -493,8 +493,8 @@ class ResNet(nn.Module):
         
         # classifier
         x = self.global_pool(layer4)
-        if self.drop_rate: # dropout is not need in resnet
-            x = self.dropout(x)
+        # if self.drop_rate: # dropout is not need in resnet
+            # x = self.dropout(x)
         x = x.view(x.size(0), -1) # reshape
         z = self.fc(x)
 
@@ -508,8 +508,8 @@ class ResNet(nn.Module):
         # backpropagate the classifier
         R = self.fc.relprop(R, alpha) 
         R = R.reshape_as(self.global_pool.Y) # reshape to the output size from global_pool
-        if self.drop_rate:
-            R = self.dropout.relprop(R, alpha)
+        # if self.drop_rate:
+            # R = self.dropout.relprop(R, alpha)
         R4 = self.global_pool.relprop(R, alpha)
 
         def _lpr_xgrad_weights(grads, activations):

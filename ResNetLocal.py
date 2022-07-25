@@ -537,33 +537,33 @@ class ResNet(nn.Module):
             return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
 
 
-        def _lpr_plusplus_weights(grads, activations):
-            """
+        # def _lpr_plusplus_weights(grads, activations):
+        #     """
 
-            Args:
-                grads (tensor): _description_
-                activations (tensor): _description_
-            returns: a tensor weight 
-            """
-            # convert to numpy
-            grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
-            activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
+        #     Args:
+        #         grads (tensor): _description_
+        #         activations (tensor): _description_
+        #     returns: a tensor weight 
+        #     """
+        #     # convert to numpy
+        #     grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
+        #     activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
 
-            grads_power_2 = grads**2
-            grads_power_3 = grads_power_2 * grads
-            # Equation 19 in https://arxiv.org/abs/1710.11063
-            sum_activations = np.sum(activations, axis=(2, 3))
-            eps = 1e-7
-            aij = grads_power_2 / (2 * grads_power_2 +
-                                sum_activations[:, :, None, None] * grads_power_3 + eps)
-            # Now bring back the ReLU from eq.7 in the paper,
-            # And zero out aijs where the activations are 0
-            aij = np.where(grads != 0, aij, 0)
+        #     grads_power_2 = grads**2
+        #     grads_power_3 = grads_power_2 * grads
+        #     # Equation 19 in https://arxiv.org/abs/1710.11063
+        #     sum_activations = np.sum(activations, axis=(2, 3))
+        #     eps = 1e-7
+        #     aij = grads_power_2 / (2 * grads_power_2 +
+        #                         sum_activations[:, :, None, None] * grads_power_3 + eps)
+        #     # Now bring back the ReLU from eq.7 in the paper,
+        #     # And zero out aijs where the activations are 0
+        #     aij = np.where(grads != 0, aij, 0)
 
-            weights = np.maximum(grads, 0) * aij
-            weights = np.sum(weights, axis=(2, 3), keepdims=True)
-            # convert back to tensor
-            return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
+        #     weights = np.maximum(grads, 0) * aij
+        #     weights = np.sum(weights, axis=(2, 3), keepdims=True)
+        #     # convert back to tensor
+        #     return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
 
 
         r_cams = []
@@ -572,7 +572,7 @@ class ResNet(nn.Module):
         # LAYER 4 CAM
         if 'layer4' in mode:
             if plusplusMode:
-                r_weight4 = _lpr_plusplus_weights(R4, layer4)
+                r_weight4 = _lpr_xgrad_weights(R4, layer4)
             else:
                 r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
             r_cam4 = layer4 * r_weight4

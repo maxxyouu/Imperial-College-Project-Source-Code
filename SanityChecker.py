@@ -136,6 +136,8 @@ for layer in ['layer1', 'layer2', 'layer3', 'layer4']:
     bhs.append(bh)
 print('Register hooks successful')
 
+destination = args.cascadingRandomFolder
+
 custom_randomized_weights = cascade_randomized_weights[0]
 model.load_state_dict(custom_randomized_weights)
 model.to(Constants.DEVICE)
@@ -146,8 +148,7 @@ for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing the Original Data ------------')
     x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
-    target_class = None #TODO: CHECK THIS!
-    internal_R_cams, output = model(x, 'layer1', [target_class], internal=False, alpha=CHOSEN_ALPHA)
+    r_cams, output = model(x, 'layer1', target_class=y, internal=False, alpha=CHOSEN_ALPHA)
 
     for i in range(x.shape[0]):
         sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
@@ -166,4 +167,15 @@ for i, (x, y) in enumerate(dataloader):
         old_level = logger.level
         logger.setLevel(100)
 
+        if Constants.WORK_ENV == 'COLAB':
+            r_cam = r_cams[i, :].reshape(58, 58).cpu().detach().numpy()
+        else:
+            r_cam = r_cams[i, :].reshape(58, 58).detach().numpy()
 
+        r_cam = cv2.resize(r_cam, (230, 230))
+        mask = plt.imshow(r_cam, cmap='seismic')
+        overlayed_image = plt.imshow(img, alpha=.5)
+        plt.axis('off')
+        plt.savefig(os.path.join(destination, cam_name+'_seismic.png'))
+
+        img_index += 1

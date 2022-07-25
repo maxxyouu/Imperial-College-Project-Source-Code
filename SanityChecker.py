@@ -1,4 +1,5 @@
 import argparse
+from typing import OrderedDict
 import torch
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
@@ -63,7 +64,7 @@ image_order_book, img_index = data.imgs, 0
 model = skresnext50_32x4d(pretrained=True)
 model.num_classes = 2
 model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
+# model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
 model.to(Constants.DEVICE)
 model.eval() # after loading the model, put the model into evaluation mode
 print('Model successfully loaded')
@@ -83,19 +84,52 @@ for layer in ['layer1', 'layer2', 'layer3', 'layer4']:
 print('Register hooks successful')
 
 # create folder for independent weight randomization and cascading weight randomization
-if not os.path.exists(args.independentRandomFolder):
-    os.makedirs(args.independentRandomFolder)
-if not os.path.exists(args.cascadingRandomFolder):
-    os.makedirs(args.cascadingRandomFolder)
+# if not os.path.exists(args.independentRandomFolder):
+#     os.makedirs(args.independentRandomFolder)
+# if not os.path.exists(args.cascadingRandomFolder):
+#     os.makedirs(args.cascadingRandomFolder)
+
+# helper function for the following
+def randomize_layer_weights(trained_weights, layer_name='fc.'):
+    """
+    helper function to randomized weight for a particular layer(stage)
+    Args:
+        trained_weights (from torch.load): ordered dictionary of trained weights
+        layer_name (str): use this to filter out which weight should be randomized
+            'logit', 'layer4', 'layer3', 'layer2', 'layer1'
+    """
+    trained_weights_cpy = deepcopy(trained_weights)
+    partial_random_weights = []
+    for key, tensor_weights in trained_weights_cpy.items():
+        # only consider tensor_weights.dtype == Constants.DTYPE == float32 instead of long
+        if layer_name == key[:len(layer_name)] and tensor_weights.dtype == Constants.DTYPE:
+            randomized_weights = torch.randn_like(tensor_weights, dtype=tensor_weights.dtype, device=tensor_weights.device, requires_grad=tensor_weights.requires_grad)
+            partial_random_weights.append((key, randomized_weights))
+        else:
+            # copy the weights directly
+            partial_random_weights.append((key, tensor_weights))
+
+    return OrderedDict(partial_random_weights)
+    
 
 print('Performing Cascading Randomization Test')
-# cascading randomization test
-
+# cascading randomization test in a unit of layer(stage)
+layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit
+trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
+cascade_randomized_weights = []
+for layer_name in layer_names:
+    # cascade randomization
+    trained_weights = randomize_layer_weights(trained_weights, layer_name=layer_name)
+    cascade_randomized_weights.append(trained_weights)
 
 print('Performing Independent Randomization Test')
+trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
+independent_randomized_weights = []
 # independent randomization test
+for layer_name in layer_names:
+    _copy = randomize_layer_weights(trained_weights, layer_name=layer_name)
+    independent_randomized_weights.append(_copy)
 
-#NOTE: each randomized weight with a copy of the network
 
 
 

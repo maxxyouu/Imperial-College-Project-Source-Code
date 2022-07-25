@@ -9,6 +9,11 @@ import os
 import Constants
 from copy import deepcopy
 from layers import *
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import logging
+
 
 my_parser = argparse.ArgumentParser(description='')
 
@@ -23,6 +28,9 @@ my_parser.add_argument('--batch_size',
 my_parser.add_argument('--cam',
                         type=str, default='relevanceCam',
                         help='cam string')
+my_parser.add_argument('--alpha',
+                        type=float, default=1,
+                        help='alpha value for propagation')
 my_parser.add_argument('--data_location',
                         type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
                         help='data directory')  
@@ -42,7 +50,8 @@ args = my_parser.parse_args()
 print('model name {}'.format(args.model))
 print('batch size: {}'.format(args.batch_size))
 print('Data Location {}'.format(args.data_location))
-
+CHOSEN_ALPHA = args.alpha
+print('alpha {}'.format(CHOSEN_ALPHA))
 
 # transformation needed for the input images
 eval_transforms = transforms.Compose([
@@ -59,29 +68,6 @@ data = datasets.ImageFolder(args.data_location, transform=eval_transforms)
 sequentialSampler = SequentialSampler(data)
 dataloader = DataLoader(data, batch_size=args.batch_size, sampler=sequentialSampler) # TODO: check image 18
 image_order_book, img_index = data.imgs, 0
-
-# prepare the model
-model = skresnext50_32x4d(pretrained=True)
-model.num_classes = 2
-model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
-# model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
-model.to(Constants.DEVICE)
-model.eval() # after loading the model, put the model into evaluation mode
-print('Model successfully loaded')
-
-# hooks for the relevance
-value = dict()
-def forward_hook(module, input, output):
-    value['activations'] = output
-def backward_hook(module, input, output):
-    value['gradients'] = output[0]
-fhs, bhs = [], []
-for layer in ['layer1', 'layer2', 'layer3', 'layer4']:
-    fh = getattr(model, layer).register_forward_hook(forward_hook)
-    bh = getattr(model, layer).register_full_backward_hook(backward_hook)
-    fhs.append(fh)
-    bhs.append(bh)
-print('Register hooks successful')
 
 # create folder for independent weight randomization and cascading weight randomization
 # if not os.path.exists(args.independentRandomFolder):
@@ -114,7 +100,7 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
 
 print('Performing Cascading Randomization Test')
 # cascading randomization test in a unit of layer(stage)
-layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit
+layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.'] # fc is the logit, visualize the cam of layer 1
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
 cascade_randomized_weights = []
 for layer_name in layer_names:
@@ -131,6 +117,53 @@ for layer_name in layer_names:
     independent_randomized_weights.append(_copy)
 
 
+# prepare the model
+model = skresnext50_32x4d(pretrained=True)
+model.num_classes = 2
+model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 
+# hooks for the relevance
+value = dict()
+def forward_hook(module, input, output):
+    value['activations'] = output
+def backward_hook(module, input, output):
+    value['gradients'] = output[0]
+fhs, bhs = [], []
+for layer in ['layer1', 'layer2', 'layer3', 'layer4']:
+    fh = getattr(model, layer).register_forward_hook(forward_hook)
+    bh = getattr(model, layer).register_full_backward_hook(backward_hook)
+    fhs.append(fh)
+    bhs.append(bh)
+print('Register hooks successful')
+
+custom_randomized_weights = cascade_randomized_weights[0]
+model.load_state_dict(custom_randomized_weights)
+model.to(Constants.DEVICE)
+model.eval() # after loading the model, put the model into evaluation mode
+print('Model successfully loaded')
+
+for i, (x, y) in enumerate(dataloader):
+    # NOTE: make sure i able index to the correct index
+    print('--------- Forward Passing the Original Data ------------')
+    x = x.to(device=Constants.DEVICE, dtype=Constants.DTYPE)
+    target_class = None #TODO: CHECK THIS!
+    internal_R_cams, output = model(x, 'layer1', [target_class], internal=False, alpha=CHOSEN_ALPHA)
+
+    for i in range(x.shape[0]):
+        sample_name = image_order_book[img_index][0].split('/')[-1] # get the image name from the dataset
+
+        img = x[i, :]
+        # img = np.swapaxes(img, 0, 2) # 2, 1, 0
+        # img = np.swapaxes(img, 0, 1) # 1, 2, 0
+        img = np.transpose(img, (1,2,0))
+        if Constants.WORK_ENV == 'COLAB':
+            img = img.cpu().detach().numpy()
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        plt.ioff()
+
+        logger = logging.getLogger()
+        old_level = logger.level
+        logger.setLevel(100)
 
 

@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import logging
 from EvaluatorUtils import *
 from resnet import resnet50 as lrp_resnet50
-
+import torch.nn.functional as F
 
 torch.manual_seed(99)
 my_parser = argparse.ArgumentParser(description='')
@@ -49,7 +49,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='independent',
+                        type=str, default='cascade',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -108,8 +108,8 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
 
 print('Performing Cascading Randomization Test')
 # cascading randomization test in a unit of layer(stage)
-# layer_names = ['origin_cam', 'fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
-layer_names = ['origin_cam'] # fc is the logit, visualize the cam of layer 1
+layer_names = ['origin_cam', 'fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
+# layer_names = ['origin_cam'] # fc is the logit, visualize the cam of layer 1
 
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
 cascade_randomized_weights = [torch.load(args.model_weights, map_location=Constants.DEVICE)]
@@ -170,7 +170,7 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
         else:
             target_class = y
         internal_R_cams, _ = model(x, 'layer3', plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
-        r_cams = internal_R_cams[0]
+        r_cams = F.relu(internal_R_cams[0])
         r_cams = max_min_lrp_normalize(r_cams)
 
         imgs = denorm(x)

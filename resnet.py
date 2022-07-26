@@ -318,7 +318,7 @@ class ResNet(nn.Module):
         R = R.reshape_as(self.avgpool.Y)
         R4 = self.avgpool.relprop(R, alpha)
 
-        def _lpr_plusplus_weights(grads, activations):
+        def _lpr_xgrad_weights(grads, activations):
             """
 
             Args:
@@ -326,30 +326,23 @@ class ResNet(nn.Module):
                 activations (tensor): _description_
             returns: a tensor weight 
             """
-            # convert to numpy
+           # convert to numpy
             grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
             activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
 
-            grads_power_2 = grads**2
-            grads_power_3 = grads_power_2 * grads
-            # Equation 19 in https://arxiv.org/abs/1710.11063
+
             sum_activations = np.sum(activations, axis=(2, 3))
             eps = 1e-7
-            aij = grads_power_2 / (2 * grads_power_2 +
-                                sum_activations[:, :, None, None] * grads_power_3 + eps)
-            # Now bring back the ReLU from eq.7 in the paper,
-            # And zero out aijs where the activations are 0
-            aij = np.where(grads != 0, aij, 0)
-
-            weights = np.maximum(grads, 0) * aij
+            # try relu(grads) if needed
+            weights = grads * activations / \
+                (sum_activations[:, :, None, None] + eps)
             weights = np.sum(weights, axis=(2, 3), keepdims=True)
-            # convert back to tensor
             return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
 
         if mode == 'layer4':
             # global average pooling as the weight for the layers
             if plusplusMode:
-                r_weight4 = _lpr_plusplus_weights(R4, layer4)
+                r_weight4 = _lpr_xgrad_weights(R4, layer4)
             else:
                 r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
             r_cam4 = layer4 * r_weight4
@@ -359,7 +352,7 @@ class ResNet(nn.Module):
         elif mode == 'layer3':
             R3 = self.layer4.relprop(R4, alpha)
             if plusplusMode:
-                r_weight3 = _lpr_plusplus_weights(R3, layer3)
+                r_weight3 = _lpr_xgrad_weights(R3, layer3)
             else:
                 r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
             r_cam3 = layer3 * r_weight3
@@ -376,7 +369,7 @@ class ResNet(nn.Module):
             R3 = self.layer4.relprop(R4, alpha)
             R2 = self.layer3.relprop(R3, alpha)
             if plusplusMode:
-                r_weight2 = _lpr_plusplus_weights(R2, layer2)
+                r_weight2 = _lpr_xgrad_weights(R2, layer2)
             else:
                 r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
             r_cam2 = layer2 * r_weight2
@@ -390,7 +383,7 @@ class ResNet(nn.Module):
             R2 = self.layer3.relprop(R3, alpha)
             R1 = self.layer2.relprop(R2, alpha)
             if plusplusMode:
-                r_weight1 = _lpr_plusplus_weights(R1, layer1)
+                r_weight1 = _lpr_xgrad_weights(R1, layer1)
             else:
                 r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
             # r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)

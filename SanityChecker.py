@@ -6,7 +6,7 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SequentialSampler
 from Helper import denorm
-from skresnet import skresnext50_32x4d
+# from skresnet import skresnext50_32x4d
 import os
 import Constants
 from copy import deepcopy
@@ -16,11 +16,14 @@ import cv2
 import matplotlib.pyplot as plt
 import logging
 from EvaluatorUtils import *
+from resnet import resnet50 as lrp_resnet50
 
+
+torch.manual_seed(99)
 my_parser = argparse.ArgumentParser(description='')
 
 # Add the arguments
-default_model_name = 'skresnext50_32x4d'
+default_model_name = 'resnet50'
 my_parser.add_argument('--model',
                         type=str, default=default_model_name,
                         help='model to be used for training / testing')
@@ -46,7 +49,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='independent',
+                        type=str, default='cascade',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -93,8 +96,8 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
     partial_random_weights = []
     for key, tensor_weights in trained_weights_cpy.items():
         # only consider tensor_weights.dtype == Constants.DTYPE == float32 instead of long
-        if layer_name == key[:len(layer_name)] and tensor_weights.dtype == Constants.DTYPE:
-            randomized_weights = torch.randn_like(tensor_weights, dtype=tensor_weights.dtype, device=tensor_weights.device, requires_grad=tensor_weights.requires_grad)
+        if ((layer_name == key[:len(layer_name)] and 'conv' in key) or (layer_name == 'fc.' and layer_name == key[:len(layer_name)])):
+            randomized_weights = torch.randn_like(tensor_weights, dtype=tensor_weights.dtype, device=tensor_weights.device, requires_grad=True)
             partial_random_weights.append((key, randomized_weights))
         else:
             # copy the weights directly
@@ -105,7 +108,8 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
 
 print('Performing Cascading Randomization Test')
 # cascading randomization test in a unit of layer(stage)
-layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.'] # fc is the logit, visualize the cam of layer 1
+layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
+
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
 cascade_randomized_weights = []
 for layer_name in layer_names:
@@ -123,7 +127,7 @@ for layer_name in layer_names:
 
 
 # prepare the model
-model = skresnext50_32x4d(pretrained=True)
+model = lrp_resnet50(pretrained=False)
 model.num_classes = 2
 model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 
@@ -141,7 +145,6 @@ for layer in ['layer1', 'layer2', 'layer3', 'layer4']:
     bhs.append(bh)
 print('Register hooks successful')
 
-destination = args.cascadingRandomFolder
 
 # custom_randomized_weights = cascade_randomized_weights[0]
 # model.load_state_dict(custom_randomized_weights)
@@ -157,7 +160,7 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
         model.load_state_dict(custom_randomized_weights)
         model.to(Constants.DEVICE)
         model.eval() # after loading the model, put the model into evaluation mode
-        internal_R_cams, _ = model(x, 'layer1', plusplusMode=True, target_class=y, internal=False, alpha=CHOSEN_ALPHA)
+        internal_R_cams, _ = model(x, 'layer3', plusplusMode=True, target_class=y, alpha=CHOSEN_ALPHA)
         r_cams = internal_R_cams[0]
         r_cams = max_min_lrp_normalize(r_cams)
 
@@ -177,13 +180,13 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             img = img.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else img.detach().numpy()
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+            plt.figure()
             plt.ioff()
 
             logger = logging.getLogger()
             old_level = logger.level
             logger.setLevel(100)
-
-            r_cam = r_cams[i, :].reshape(58, 58).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else r_cams[i, :].reshape(58, 58).detach().numpy()
+            r_cam = r_cams[i, :].squeeze(0).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else r_cams[i, :].squeeze(0).detach().numpy()
             r_cam = cv2.resize(r_cam, (230, 230))
             mask = plt.imshow(r_cam, cmap='seismic')
             overlayed_image = plt.imshow(img, alpha=.5)

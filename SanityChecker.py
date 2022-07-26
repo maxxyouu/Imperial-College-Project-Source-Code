@@ -49,7 +49,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='cascade',
+                        type=str, default='independent',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -169,7 +169,7 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             target_class = [None]
         else:
             target_class = y
-        internal_R_cams, _ = model(x, 'layer3', plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
+        internal_R_cams, _ = model(x, 'layer4', plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
         r_cams = F.relu(internal_R_cams[0])
         r_cams = max_min_lrp_normalize(r_cams)
 

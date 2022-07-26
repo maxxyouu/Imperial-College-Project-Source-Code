@@ -513,7 +513,6 @@ class ResNet(nn.Module):
         R4 = self.global_pool.relprop(R, alpha)
 
         def _lpr_xgrad_weights(grads, activations):
-            print('xgrad weight')
            # convert to numpy
             grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
             activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()

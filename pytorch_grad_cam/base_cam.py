@@ -108,15 +108,6 @@ class BaseCAM:
         width, height = input_tensor.size(-1), input_tensor.size(-2)
         return width, height
 
-    def lateral_inhibition(self, dcam, fcam):
-        result = []
-        for d, f in zip(dcam, fcam):
-            result.append(d - d*f)
-        return result
-
-    # def collateral_integration(self, scaled_cams):
-    #     return np.sum()
-
     def compute_cam_per_layer(
             self,
             input_tensor: torch.Tensor,
@@ -154,62 +145,12 @@ class BaseCAM:
             cam_per_target_layer.append(scaled[:, None, :])
 
         return cam_per_target_layer
-    
-    def dense_cam(self, cam_per_target_layer):
-        result = []
-        for i in range(cam_per_target_layer.shape[0]): # for each image
-            # all cams for a particular image in a batch
-            
-            # backward
-            # create a empty ndarry that store the average of each cam
-            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
-            avg_cam = None
-            for cam_index in range(img_cams.shape[0]-1, -1, -1):
-                avg_cam = np.mean(img_cams[cam_index:, :], axis=0) # TODO: make sure the axis is correct
-                img_cams[cam_index, :] = avg_cam # average of average
-
-            result.append(avg_cam)
-        
-        return np.stack(result)
-    
-    def bilateral_dense_cam(self, cam_per_target_layer):
-        result = []
-        for i in range(cam_per_target_layer.shape[0]): # for each image
-            # all cams for a particular image in a batch
-            
-            # backward
-            # create a empty ndarry that store the average of each cam
-            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
-            avg_cam = None
-            for cam_index in range(img_cams.shape[0]-1, -1, -1):
-                avg_cam = np.mean(img_cams[cam_index:, :], axis=0) # TODO: make sure the axis is correct
-                img_cams[cam_index, :] = avg_cam # average of average
-                # avg_cams.append(avg_cam)
-        
-            # forward
-            img_cams = copy.deepcopy(cam_per_target_layer[i, :])
-            forward_avg_cam = None
-            for cam_index in range(1, img_cams.shape[0]+1):
-                 forward_avg_cam = np.mean(img_cams[:cam_index:, :], axis=0)
-                 img_cams[cam_index-1, :] = forward_avg_cam
-            #bilateral average
-
-            bilateral_avg = (forward_avg_cam + avg_cam) / 2.
-
-            result.append(bilateral_avg)
-        
-        return np.stack(result)
 
     def aggregate_multi_layers(self, cam_per_target_layer: np.ndarray) -> np.ndarray:
         cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1) #[ # imgs, # of layers (cams), x_dim, y_dim], where x_dim=y_dim=230
         cam_per_target_layer = np.average(cam_per_target_layer, axis=1)
         # cam_per_target_layer = np.maximum(dense_avg_result, 0)
         return scale_cam_image(cam_per_target_layer)
-
-        # do dense averging before relu, intuition: relu at the end to keep as much averge detail as possible
-        # cam_per_target_layer = np.maximum(cam_per_target_layer, 0) # relu act
-        # result = np.mean(cam_per_target_layer, axis=1) # spatial average of cam
-        # return scale_cam_image(result)
 
     def forward_augmentation_smoothing(self,
                                        input_tensor: torch.Tensor,

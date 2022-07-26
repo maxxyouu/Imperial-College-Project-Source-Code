@@ -311,7 +311,7 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)
         z = self.fc(x)
         if mode == 'output':
-            return z
+            return [], z
 
         R = self.CLRP(z, target_class)
         R = self.fc.relprop(R, alpha)
@@ -335,63 +335,67 @@ class ResNet(nn.Module):
                 (sum_activations[:, :, None, None] + eps)
             weights = np.sum(weights, axis=(2, 3), keepdims=True)
             return torch.tensor(weights, dtype=Constants.DTYPE, device=Constants.DEVICE)
+        
+        r_cams = []
 
-        if mode == 'layer4':
-            # global average pooling as the weight for the layers
+        # LAYER 4 CAM
+        if 'layer4' in mode:
             if plusplusMode:
                 r_weight4 = _lpr_xgrad_weights(R4, layer4)
             else:
                 r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
             r_cam4 = layer4 * r_weight4
+            # sum up the attention map
             r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
-            return [r_cam4], z
-            # _, r_cams = self.inner_layer_relprop(layer4s, self.layer4, R4, alpha=1) # NOTE:inspect the internal of the stage
-        elif mode == 'layer3':
-            R3 = self.layer4.relprop(R4, alpha)
+            r_cams.insert(0, r_cam4)
+        if len(r_cams) == len(mode):
+            return r_cams, z
+
+        # LAYER 3 CAM
+        R3 = self.layer4.relprop(R4, alpha)
+        if 'layer3' in mode:
+             # NOTE: propagate the LRP to the end of layer 3 and beginning of layer 4
             if plusplusMode:
                 r_weight3 = _lpr_xgrad_weights(R3, layer3)
             else:
                 r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
             r_cam3 = layer3 * r_weight3
-            r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)            
-            return [r_cam3], z
+            r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
+            r_cams.insert(0, r_cam3)
 
-            # R3 is the weight for the last layer of stage 3 = R3 = self.layer4.relprop(R4, 1)
-            # each element of the R_list corresponding to each layer inside the stage (same length)
-            # r_cams[-1] = R3
+        if len(r_cams) == len(mode):
+            return r_cams, z
+
+        # LAYER 2 CAM
+        R2 = self.layer3.relprop(R3, alpha)
+        if 'layer2' in mode:
             
-            # _, r_cams = self.inner_layer_relprop(layer3s, self.layer3, R3, alpha=1) # NOTE: inspect the internal of the stage
-            # return r_cams, z
-        elif mode == 'layer2':
-            R3 = self.layer4.relprop(R4, alpha)
-            R2 = self.layer3.relprop(R3, alpha)
             if plusplusMode:
                 r_weight2 = _lpr_xgrad_weights(R2, layer2)
             else:
                 r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
             r_cam2 = layer2 * r_weight2
-            r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)
-            return [r_cam2], z
+            r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)   
+            r_cams.insert(0, r_cam2)
+        if len(r_cams) == len(mode):
+            return r_cams, z
 
-            # _, r_cams = self.inner_layer_relprop(layer2s, self.layer2, R2, alpha=1) # NOTE: inspect the internal of the stage
-            # return r_cams, z
-        elif mode == 'layer1':
-            R3 = self.layer4.relprop(R4, alpha)
-            R2 = self.layer3.relprop(R3, alpha)
-            R1 = self.layer2.relprop(R2, alpha)
+        # LAYER 1 CAM
+        R1 = self.layer2.relprop(R2, alpha)
+        if 'layer1' in mode:
+            
             if plusplusMode:
                 r_weight1 = _lpr_xgrad_weights(R1, layer1)
             else:
                 r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
-            # r_weight1 = torch.mean(R1, dim=(2, 3), keepdim=True)
             r_cam1 = layer1 * r_weight1
             r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
-            return [r_cam1], z
+            r_cams.insert(0, r_cam1)
 
-            # _, r_cams = self.inner_layer_relprop(layer1s, self.layer1, R1, alpha=1) # NOTE: inspect the internal of the stage
-            # return r_cams, z
-        else:
-            return z
+        if len(r_cams) == len(mode):
+            return r_cams, z
+
+        return r_cams, z
     
     def inner_layer_relprop(self, internal_ms,  stage,  R, alpha=1):
         """relevance cam of internal layer of each stage

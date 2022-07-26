@@ -559,7 +559,6 @@ class ResNet(nn.Module):
 
         r_cams = []
 
-        #TODO: THERE IS BUG IN HERE, NOT WORK FOR SINGLE LAYER
         # LAYER 4 CAM
         if 'layer4' in mode:
             if plusplusMode:

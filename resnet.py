@@ -326,14 +326,11 @@ class ResNet(nn.Module):
                 activations (tensor): _description_
             returns: a tensor weight 
             """
-           # convert to numpy
+            # convert to numpy
             grads = grads.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else grads.detach().numpy()
             activations = activations.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else activations.detach().numpy()
-
-
             sum_activations = np.sum(activations, axis=(2, 3))
             eps = 1e-7
-            # try relu(grads) if needed
             weights = grads * activations / \
                 (sum_activations[:, :, None, None] + eps)
             weights = np.sum(weights, axis=(2, 3), keepdims=True)

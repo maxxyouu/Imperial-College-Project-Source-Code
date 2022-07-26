@@ -37,7 +37,7 @@ my_parser.add_argument('--alpha',
                         type=float, default=1,
                         help='alpha value for propagation')
 my_parser.add_argument('--data_location',
-                        type=str, default=Constants.ANNOTATED_IMG_PATH, #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
+                        type=str, default='./picture', #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
                         help='data directory')  
 my_parser.add_argument('--model_weights',
                         type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
@@ -49,7 +49,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='cascade',
+                        type=str, default='independent',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -108,20 +108,25 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
 
 print('Performing Cascading Randomization Test')
 # cascading randomization test in a unit of layer(stage)
-layer_names = ['fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
+# layer_names = ['origin_cam', 'fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
+layer_names = ['origin_cam'] # fc is the logit, visualize the cam of layer 1
 
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
-cascade_randomized_weights = []
+cascade_randomized_weights = [torch.load(args.model_weights, map_location=Constants.DEVICE)]
 for layer_name in layer_names:
     # cascade randomization
+    if layer_name == 'origin_cam':
+        continue
     trained_weights = randomize_layer_weights(trained_weights, layer_name=layer_name)
     cascade_randomized_weights.append(trained_weights)
 
 print('Performing Independent Randomization Test')
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
-independent_randomized_weights = []
+independent_randomized_weights = [torch.load(args.model_weights, map_location=Constants.DEVICE)]
 # independent randomization test
 for layer_name in layer_names:
+    if layer_name == 'origin_cam':
+        continue
     _copy = randomize_layer_weights(trained_weights, layer_name=layer_name)
     independent_randomized_weights.append(_copy)
 
@@ -160,7 +165,11 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
         model.load_state_dict(custom_randomized_weights)
         model.to(Constants.DEVICE)
         model.eval() # after loading the model, put the model into evaluation mode
-        internal_R_cams, _ = model(x, 'layer3', plusplusMode=True, target_class=y, alpha=CHOSEN_ALPHA)
+        if randomized_layer_name == 'origin_cam':
+            target_class = [None]
+        else:
+            target_class = y
+        internal_R_cams, _ = model(x, 'layer3', plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
         r_cams = internal_R_cams[0]
         r_cams = max_min_lrp_normalize(r_cams)
 

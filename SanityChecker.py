@@ -18,12 +18,14 @@ import logging
 from EvaluatorUtils import *
 from resnet import resnet50 as lrp_resnet50
 import torch.nn.functional as F
+from skresnet import skresnext50_32x4d as lrp_skresnext
+from ResNetLocal import resnext50_32x4d
 
 torch.manual_seed(99)
 my_parser = argparse.ArgumentParser(description='')
 
 # Add the arguments
-default_model_name = 'resnet50'
+default_model_name = 'skresnext50_32x4d'
 my_parser.add_argument('--model',
                         type=str, default=default_model_name,
                         help='model to be used for training / testing')
@@ -36,6 +38,9 @@ my_parser.add_argument('--cam',
 my_parser.add_argument('--alpha',
                         type=float, default=1,
                         help='alpha value for propagation')
+my_parser.add_argument('--target_layer',
+                        type=str, default='layer3',
+                        help='target layer to examine')
 my_parser.add_argument('--data_location',
                         type=str, default='./picture', #os.path.join(Constants.STORAGE_PATH, 'mutual_corrects'), # for segmentation: Constants.ANNOTATED_IMG_PATH
                         help='data directory')  
@@ -49,7 +54,7 @@ my_parser.add_argument('--cascadingRandomFolder',
                         type=str, default=os.path.join(Constants.STORAGE_PATH, 'cascadingRandomFolder'),
                         help='Destination for final results') 
 my_parser.add_argument('--sanityCheckMode',
-                        type=str, default='independent',
+                        type=str, default='cascade',
                         help='cascade or independent') 
 args = my_parser.parse_args()
 
@@ -57,6 +62,7 @@ args = my_parser.parse_args()
 # Sanity check of the arguments
 print('model name {}'.format(args.model))
 print('batch size: {}'.format(args.batch_size))
+print('target layer: {}'.format(args.target_layer))
 print('Data Location {}'.format(args.data_location))
 CHOSEN_ALPHA = args.alpha
 print('alpha {}'.format(CHOSEN_ALPHA))
@@ -96,8 +102,11 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
     partial_random_weights = []
     for key, tensor_weights in trained_weights_cpy.items():
         # only consider tensor_weights.dtype == Constants.DTYPE == float32 instead of long
-        if ((layer_name == key[:len(layer_name)] and 'conv' in key) or (layer_name == 'fc.' and layer_name == key[:len(layer_name)])):
-            randomized_weights = torch.randn_like(tensor_weights, dtype=tensor_weights.dtype, device=tensor_weights.device, requires_grad=True)
+        cond1 = layer_name == key[:len(layer_name)] and 'conv' in key
+        cond2 = layer_name == 'fc.' and layer_name == key[:len(layer_name)]
+        cond3 = 'attn' not in key and tensor_weights.dtype == Constants.DTYPE
+        if (cond1 or cond2) and cond3:
+            randomized_weights = torch.rand_like(tensor_weights, dtype=tensor_weights.dtype, device=tensor_weights.device, requires_grad=True)
             partial_random_weights.append((key, randomized_weights))
         else:
             # copy the weights directly
@@ -109,7 +118,6 @@ def randomize_layer_weights(trained_weights, layer_name='fc.'):
 print('Performing Cascading Randomization Test')
 # cascading randomization test in a unit of layer(stage)
 layer_names = ['origin_cam', 'fc.', 'layer4.', 'layer3.', 'layer2.', 'layer1.'] # fc is the logit, visualize the cam of layer 1
-# layer_names = ['origin_cam'] # fc is the logit, visualize the cam of layer 1
 
 trained_weights = torch.load(args.model_weights, map_location=Constants.DEVICE)
 cascade_randomized_weights = [torch.load(args.model_weights, map_location=Constants.DEVICE)]
@@ -132,7 +140,12 @@ for layer_name in layer_names:
 
 
 # prepare the model
-model = lrp_resnet50(pretrained=False)
+if args.model == 'resnet50':
+    model = lrp_resnet50(pretrained=False)
+elif args.model == 'skresnext50_32x4d':
+    model = lrp_skresnext(pretrained=False)
+elif args.model == 'resnext50_32x4d':
+    model = resnext50_32x4d(pretrained=False)
 model.num_classes = 2
 model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
 
@@ -169,7 +182,7 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             target_class = [None]
         else:
             target_class = y
-        internal_R_cams, _ = model(x, 'layer4', plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
+        internal_R_cams, _ = model(x, args.target_layer, plusplusMode=True, target_class=target_class, alpha=CHOSEN_ALPHA)
         r_cams = F.relu(internal_R_cams[0])
         r_cams = max_min_lrp_normalize(r_cams)
 
@@ -200,7 +213,7 @@ def generate_cam_from_randomized_weights(x, y, model, randomized_weights, layer_
             mask = plt.imshow(r_cam, cmap='seismic')
             overlayed_image = plt.imshow(img, alpha=.5)
             plt.axis('off')
-            image_name = '{}.png'.format(randomized_layer_name[:-1])
+            image_name = '{}_targetLayer{}.png'.format(randomized_layer_name[:-1], args.target_layer)
             plt.savefig(os.path.join(dest, image_name))
 
 for i, (x, y) in enumerate(dataloader):

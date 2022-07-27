@@ -2,6 +2,7 @@ import torch
 import timm
 import torch.nn as nn
 import Constants
+from skresnet import skresnext50_32x4d
 
 class Baseline_Model:
     """
@@ -194,5 +195,6 @@ if __name__ == '__main__':
     # print(torch. __version__)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
 
-    net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=False, headWidth=3)
+    # net = Pytorch_default_skresnext(dtype=Constants.DTYPE, device=Constants.DEVICE, pretrain=False, headWidth=1)
+    net = skresnext50_32x4d(pretrained=False)
     print(sum(p.numel() for p in net.model.parameters() if p.requires_grad))

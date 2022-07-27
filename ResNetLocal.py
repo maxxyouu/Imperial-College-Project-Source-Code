@@ -272,6 +272,7 @@ def make_blocks(
             inplanes = planes * block_fn.expansion
             net_block_idx += 1
         # sequential of custom blocks, each block must have a relprop function for CLRP to work
+        
         stages.append((stage_name, Sequential(*blocks)))
         feature_info.append(dict(num_chs=inplanes, reduction=net_stride, module=stage_name))
 
@@ -403,8 +404,6 @@ class ResNet(nn.Module):
         self.global_pool, self.fc = create_classifier(self.num_features, self.num_classes, pool_type=global_pool)
 
         self.init_weights(zero_init_last=zero_init_last)
-
-        # self.dropout = Dropout(p=float(self.drop_rate))
 
     @torch.jit.ignore
     def init_weights(self, zero_init_last=True):

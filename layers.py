@@ -153,6 +153,9 @@ class ReLU(nn.ReLU, RelProp):
 class Dropout(nn.Dropout, RelProp):
     pass
 
+class Dropout2d(nn.Dropout2d, RelProp):
+    pass
+
 class MaxPool2d(nn.MaxPool2d, RelPropSimple):
     pass
 

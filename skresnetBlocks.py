@@ -492,7 +492,7 @@ class SelectiveKernelBottleneck(nn.Module):
     def __init__(
             self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64, sk_kwargs=None,
             reduce_first=1, dilation=1, first_dilation=None, act_layer=ReLU, norm_layer=BatchNorm2d,
-            attn_layer=None, aa_layer=None, drop_block=None, drop_path=None):
+            attn_layer=None, aa_layer=None, drop_block=None, drop_path=None, drop_out=0.1):
 
         # miscellaneous stuff 
         super(SelectiveKernelBottleneck, self).__init__()
@@ -514,6 +514,10 @@ class SelectiveKernelBottleneck(nn.Module):
         self.downsample = downsample
         self.drop_path = drop_path
         self.add = Add()
+        
+        self.layer_drop_out = None
+        if drop_out is not None and type(drop_out) == float and drop_out < 1 and drop_out > 0:
+            self.layer_drop_out = Dropout2d(drop_out)
 
     def zero_init_last(self):
         nn.init.zeros_(self.conv3.bn.weight)
@@ -531,9 +535,13 @@ class SelectiveKernelBottleneck(nn.Module):
             shortcut = self.downsample(shortcut)
         x = self.add([x, shortcut]) # x += shortcut
         x = self.act(x)
+        if self.layer_drop_out is not None:
+            x = self.layer_drop_out(x)
         return x
 
     def relprop(self, R, alpha):
+        if self.layer_drop_out is not None:
+            out = self.layer_drop_out(R, alpha)
         out = self.act.relprop(R, alpha)
         out, x = self.add.relprop(out, alpha) # x here is the shorcut out
         if self.downsample is not None:

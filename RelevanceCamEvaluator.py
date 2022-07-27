@@ -9,7 +9,6 @@ from copy import deepcopy
 import torch
 from torch.nn.functional import softmax
 import os
-from ResNetLocal import resnet50
 from skresnet import skresnext50_32x4d
 from layers import *
 from RelevanceCamUtils import *
@@ -26,7 +25,7 @@ from vgg import vgg11_bn as lrp_vgg11_bn
 from resnet import resnet152 as lrp_resnet152
 from ResNetLocal import resnext50_32x4d
 
-default_model_name = 'resnext50_32x4d'
+default_model_name = 'skresnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model_name',
                         type=str, default=default_model_name,
@@ -38,7 +37,7 @@ my_parser.add_argument('--target_layer',
                         type=str, default='layer3,layer4',
                         help='sample: 3,4') 
 my_parser.add_argument('--batch_size',
-                        type=int, default=1,
+                        type=int, default=2,
                         help='batch size to be used for training / testing') 
 my_parser.add_argument('--exp_map_func',
                         type=str, default='hard_threshold_explanation_map',
@@ -62,7 +61,7 @@ my_parser.add_argument('--eval_model_uncertainty',
                         type=bool, action=argparse.BooleanOptionalAction,
                         help='evaluate model uncertainty')
 my_parser.add_argument('--ensemble_N',
-                        type=int, default=1,
+                        type=int, default=2,
                         help='number of times to evaluate using the layer dropout, only be used with eval_model_uncertainty holds true')
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
@@ -77,6 +76,12 @@ args = my_parser.parse_args()
 
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
+if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
+    args.eval_model_uncertainty = True
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+    annotation_file_list = os.listdir(args.annotation_path)
 if args.eval_model_uncertainty is None:
     args.eval_model_uncertainty = False
 elif args.eval_model_uncertainty and args.model_weights == '' :
@@ -98,9 +103,10 @@ if args.plusplusMode is None:
     args.plusplusMode = False # for local debug only
 print('Plus Plus Mode: {}'.format(args.plusplusMode))
 print('Head Width: {}'.format(args.headWidth))
+TRUE_PREDICTION = 0
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_segmentation = True 
+    args.eval_segmentation = False 
 if args.eval_segmentation is None or args.eval_segmentation == False:
     args.eval_segmentation = False
 else:
@@ -286,19 +292,22 @@ def evaluate_model_uncertainty(x, annotations, args):
     batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
     
     # only take into account the correctly predicted images for each member of the ensemble
+    batch_filtered_aggregated_masks = []
     for i, logit_scores in enumerate(per_iter_logits):
         correct_predict_index = (torch.argmax(logit_scores, dim=1) == 1).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else (torch.argmax(logit_scores, dim=1) == 1).detach().numpy()
-        batch_aggregated_masks = batch_aggregated_masks[correct_predict_index]
-        batch_cam_mask = batch_cam_mask[correct_predict_index]
-        batch_cam_masks[i] = batch_cam_mask # replace the one that are only correctly classified
+        # batch_aggregated_masks = batch_aggregated_masks[correct_predict_index]
+        batch_filtered_aggregated_masks.append(batch_aggregated_masks[correct_predict_index])
+        batch_cam_masks[i] = batch_cam_masks[i][correct_predict_index] # replace the one that are only correctly classified
+        global TRUE_PREDICTION
+        TRUE_PREDICTION += np.sum(correct_predict_index)
     
     # find the std and average iou
-    for i, batch_cam_mask in enumerate(batch_cam_masks):
+    for i, (batch_cam_mask, batch_aggregated_masks, iou_logger) in enumerate(zip(batch_cam_masks, batch_filtered_aggregated_masks, iou_loggers)):
         # Intersection over Union
         overlap = batch_cam_mask * batch_aggregated_masks
         union = batch_cam_mask + batch_aggregated_masks
         iou_loggers[i].update(overlap.sum(), union.sum())
-        print('member {}/{}; current overlap: {}; current overlap: {}; current union: {}'.format(i, args.ensemble_N, iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
+        print('member {}/{}; current overlap: {}; current overlap: {}; current union: {}'.format(i+1, args.ensemble_N, iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
 
 
 def evaluate_model_metrics(x, args):
@@ -444,5 +453,6 @@ elif evaluate_inverse_threshold:
 elif args.eval_model_uncertainty:
     avg_iou = np.array([iou_logger.get_avg() for iou_logger in iou_loggers])
     print('{}, Avg IoU: {}, Std: {}'.format(args.target_layer, np.average(avg_iou), np.std(avg_iou)))
+    print('number of true predictions: {}'.format(TRUE_PREDICTION))
 else:
     print('{}, Total Intersection: {}; Total Union:{}; IoU: {}'.format(args.target_layer, iou_logger.overlap, iou_logger.union, iou_logger.get_avg()))

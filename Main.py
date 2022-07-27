@@ -69,14 +69,14 @@ my_parser.add_argument('--headWidth',
 my_parser.add_argument('--layerDropout',
                         type=bool, action=argparse.BooleanOptionalAction, 
                         help='add one dropout layer to each stage')                   
-my_parser.add_argument('--dropoutRate',
-                        type=float, default=0.1, 
+my_parser.add_argument('--withDropout',
+                        type=bool, action=argparse.BooleanOptionalAction, 
                         help='with layerDropout being true, use this')         
 
 # Execute the parse_args() method
 args = my_parser.parse_args()
 args.pickel_initial += '_headWidth{}'.format(args.headWidth)
-args.pickel_initial += '_withLayerDropout_rate' if args.layerDropout else ''
+args.pickel_initial += '_withLayerDropout' if args.withDropout else ''
 if args.pretrain is None:
     args.pretrain = True
 

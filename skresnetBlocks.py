@@ -541,7 +541,7 @@ class SelectiveKernelBottleneck(nn.Module):
 
     def relprop(self, R, alpha):
         if self.layer_drop_out is not None:
-            out = self.layer_drop_out(R, alpha)
+            out = self.layer_drop_out.relprop(R, alpha)
         out = self.act.relprop(R, alpha)
         out, x = self.add.relprop(out, alpha) # x here is the shorcut out
         if self.downsample is not None:

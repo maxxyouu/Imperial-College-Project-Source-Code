@@ -23,6 +23,7 @@ from layers import *
 import Constants
 from Helper import denorm, switch_cam, extract_attention_cam_args, get_trained_model, find_mutual_correct_images
         
+torch.manual_seed(100)
 def add_noise(x, noise_level):
     noise = np.random.normal(0.0, scale=noise_level)
     noise = torch.tensor(noise, device=Constants.DEVICE, dtype=Constants.DTYPE)

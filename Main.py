@@ -65,10 +65,7 @@ my_parser.add_argument('--folderName',
                         help='eg: SupCon_path_skresnext50_32x4d_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_0_64_mlp_cosine') 
 my_parser.add_argument('--headWidth',
                         type=int, default=1, # example: ckpt_epoch_500
-                        help='width of the projection head of the classifier') 
-my_parser.add_argument('--layerDropout',
-                        type=bool, action=argparse.BooleanOptionalAction, 
-                        help='add one dropout layer to each stage')                   
+                        help='width of the projection head of the classifier')                
 my_parser.add_argument('--withDropout',
                         type=bool, action=argparse.BooleanOptionalAction, 
                         help='with layerDropout being true, use this')         
@@ -271,8 +268,7 @@ print('simclr: {}'.format(args.simClr))
 print('supCon: {}'.format(args.supCon))
 print('chkPointName: {}'.format(args.chkPointName))
 print('model path: {}'.format(args.folderName))
-print('layer dropout {}'.format(args.layerDropout))
-print('dropout rate {}'.format(args.dropoutRate))
+print('layer dropout {}'.format(args.withDropout))
 
 train_transforms, test_transforms = data_transformations()
 

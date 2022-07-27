@@ -148,6 +148,8 @@ class Bottleneck(nn.Module):
         self.dilation = dilation
         self.drop_path = drop_path
 
+        self.add = Add()
+
     def zero_init_last(self):
         nn.init.zeros_(self.bn3.weight)
 
@@ -170,15 +172,39 @@ class Bottleneck(nn.Module):
         # if self.se is not None:
         #     x = self.se(x)
 
-        if self.drop_path is not None:
-            x = self.drop_path(x)
+        # if self.drop_path is not None:
+        #     x = self.drop_path(x)
 
         if self.downsample is not None:
             shortcut = self.downsample(shortcut)
-        x += shortcut
+
+        x = self.add([x, shortcut]) # x += shortcut
         x = self.act3(x)
 
         return x
+    
+    def relprop(self, R, alpha):
+        out = self.act3.relprop(R, alpha)
+        out, x = self.add.relprop(out, alpha) # x here is the shorcut out
+
+        if self.downsample is not None:
+            x = self.downsample.relprop(x, alpha)
+
+        out = self.bn3.relprop(out, alpha)
+        out = self.conv3.relprop(out, alpha)
+
+        out = self.aa.relprop(out, alpha)
+        out = self.act2.relprop(out, alpha)
+        out = self.drop_block.relprop(out, alpha)
+        out = self.bn2.relprop(out, alpha)
+        out = self.conv2.relprop(out, alpha)
+
+        out = self.act1.relprop(out, alpha)
+        out = self.bn1.relprop(out, alpha)
+        out = self.conv1.relprop(out, alpha)
+
+        return out + x
+
 
 def downsample_conv(
         in_channels, out_channels, kernel_size, stride=1, dilation=1, first_dilation=None, norm_layer=None):

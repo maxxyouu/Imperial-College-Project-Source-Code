@@ -170,7 +170,11 @@ else: # other models
 # load the trained weights
 model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVICE))
 model.to(Constants.DEVICE)
-model.eval() # after loading the model, put the model into evaluation mode
+if not args.eval_model_uncertainty:
+    model.eval() # after loading the model, put the model into evaluation mode
+    print('Mode is in evaluation mode')
+else:
+    print('Mode is NOT in Evaluation Mode')
 print('Model successfully loaded')
 
 aggregation = False

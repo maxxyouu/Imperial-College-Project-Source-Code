@@ -295,7 +295,7 @@ def evaluate_model_uncertainty(x, annotations, args):
         union = batch_cam_mask + batch_aggregated_masks
         iou_loggers[i].update(overlap.sum(), union.sum())
         print('member {}/{}; current overlap: {}; current overlap: {}; current union: {}'.format(i, args.ensemble_N, iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
-    
+
 
 def evaluate_model_metrics(x, args):
     Yci = None
@@ -437,10 +437,8 @@ if not args.eval_segmentation and not evaluate_inverse_threshold:
     print('{}; Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
 elif evaluate_inverse_threshold:
     print('{};  Average Confidence: {}'.format(args.target_layer, ac_logger.get_avg()))
+elif args.eval_model_uncertainty:
+    avg_iou = np.array([iou_logger.get_avg() for iou_logger in iou_loggers])
+    print('{}, Avg IoU: {}, Std: {}'.format(args.target_layer, np.average(avg_iou), np.std(avg_iou)))
 else:
     print('{}, Total Intersection: {}; Total Union:{}; IoU: {}'.format(args.target_layer, iou_logger.overlap, iou_logger.union, iou_logger.get_avg()))
-
-# for j in range(cam.shape[0]):
-#     plt.imshow(cam[j,:].squeeze(0), cmap='seismic')
-#     plt.imshow(np.transpose(img[j,:], (1,2,0)), alpha=.5)
-#     plt.axis('off')

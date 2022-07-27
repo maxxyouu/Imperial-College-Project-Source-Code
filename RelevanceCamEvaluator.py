@@ -180,9 +180,10 @@ model.load_state_dict(torch.load(args.model_weights, map_location=Constants.DEVI
 model.to(Constants.DEVICE)
 if not args.eval_model_uncertainty:
     model.eval() # after loading the model, put the model into evaluation mode
-    print('Mode is in evaluation mode')
+    print('Mode is in Evaluation mode')
 else:
-    print('Mode is NOT in Evaluation Mode')
+    model.train()
+    print('Mode is in Training Mode')
 print('Model successfully loaded')
 
 aggregation = False
@@ -246,7 +247,7 @@ args.exp_map_func = eval(args.exp_map_func)
 if args.evaluate_all_layers:
     ad_logger = Average_Drop_logger(np.zeros((1, 4)))
     ic_logger = Increase_Confidence_logger(np.zeros((1, 4)))
-elif args.ensemble_N >= 1:
+elif args.ensemble_N >= 1 and args.eval_model_uncertainty:
     iou_loggers = [IOU_logger(0) for _ in range(args.ensemble_N)]
 else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
@@ -265,11 +266,11 @@ def evaluate_model_uncertainty(x, annotations, args):
     """
     centerCrop = transforms.CenterCrop(230)
 
-    per_iter_cams, per_iter_logits = [], []
+    per_iter_cams, per_member_logits = [], []
     for _ in range(args.ensemble_N):
         cams, logit_scores = model(x, mode=args.target_layer, target_class=[None], plusplusMode=args.plusplusMode,  alpha=args.alpha)
         per_iter_cams.append(cams)
-        per_iter_logits.append(logit_scores)
+        per_member_logits.append(logit_scores)
     
     batch_cam_masks = [] # explanation maps that are of size the input image and segmented
     if aggregation:
@@ -295,7 +296,7 @@ def evaluate_model_uncertainty(x, annotations, args):
     
     # only take into account the correctly predicted images for each member of the ensemble
     batch_filtered_aggregated_masks = []
-    for i, logit_scores in enumerate(per_iter_logits):
+    for i, logit_scores in enumerate(per_member_logits):
         correct_predict_index = (torch.argmax(logit_scores, dim=1) == 1).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else (torch.argmax(logit_scores, dim=1) == 1).detach().numpy()
         # batch_aggregated_masks = batch_aggregated_masks[correct_predict_index]
         batch_filtered_aggregated_masks.append(batch_aggregated_masks[correct_predict_index])

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from torchvision import transforms, datasets
 from torch.nn.functional import softmax
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -15,6 +16,8 @@ import logging
 import argparse
 from Helper import *
 from EvaluatorUtils import *
+from skresnet import skresnext50_32x4d # this is the version that has dropout in this branch
+from layers import *
 
 # local imports
 import Constants
@@ -75,7 +78,7 @@ my_parser.add_argument('--model',
                         type=str, default=default_model_name,
                         help='model to be used for training / testing') 
 my_parser.add_argument('--model_weights',
-                        type=str, default=os.path.join(Constants.SAVED_MODEL_PATH, default_model_name+'_pretrain.pt'),
+                        type=str, default='',
                         help='Destination for the model weights') 
 my_parser.add_argument('--noiseSmooth',
                         type=bool, action=argparse.BooleanOptionalAction,
@@ -93,7 +96,7 @@ my_parser.add_argument('--layers',
                         type=str, default='3,4',
                         help='cam name for explanation') 
 my_parser.add_argument('--batchSize',
-                        type=int, default=3,
+                        type=int, default=2,
                         help='batch size to be used for training / testing')  
 my_parser.add_argument('--run_mode',
                         type=str, default='metrics',
@@ -126,7 +129,6 @@ args = my_parser.parse_args()
 # print statement to verify the boolean arguments
 print('Noise Smooth Arg: {}'.format(args.noiseSmooth))
 print('Model Name: {}'.format(args.model))
-print('Model Weight Destination: {}'.format(args.model_weights))
 print('Target Layer: {}'.format(args.layers))
 print('Batch Size: {}'.format(args.batchSize))
 print('Explanation map style: {}'.format(args.exp_map_func))
@@ -143,11 +145,13 @@ elif args.eval_model_uncertainty and args.model_weights == '' :
     assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
     assert(args.annotation_path == Constants.ANNOTATION_PATH)
     annotation_file_list = os.listdir(args.annotation_path)
-    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_headWidth1_withLayerDropout_pretrain.pt')
+    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model +'_headWidth1_withLayerDropout_pretrain.pt')
 print('Evaluate Model Uncertainty: {}'.format(args.eval_model_uncertainty))
 if args.model_weights == '': # default model weight destination
-    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_pretrain.pt')
+    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model +'_pretrain.pt')
+print('Model Weight Destination: {}'.format(args.model_weights))
 data_dir = args.data_location
+
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
     args.eval_segmentation = True 
@@ -161,9 +165,22 @@ else:
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
 
 # model_wrapper = get_trained_model(args.model)
-model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)
+if args.model == 'skresnext50_32x4d':
+    model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)
+    model = skresnext50_32x4d(pretrained=False)
+    model.num_classes = 2
+    model.fc = Linear(model.fc.in_features, model.num_classes, device=Constants.DEVICE, dtype=Constants.DTYPE)
+    model_wrapper.model = deepcopy(model)
+else:
+    model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)
+
 model_wrapper.load_learned_weights(args.model_weights)
-model_wrapper.model.eval() # put the model into evaluation mode for the dropout layer
+if not args.eval_model_uncertainty:
+    model_wrapper.model.eval() # put the model into evaluation mode for the dropout layer
+    print('In evaluationg mode')
+else:
+    model_wrapper.model.train()
+    print('In training mode')
 print('successfully load the model')
 model_target_layer = target_layers(model_wrapper.model, args.layers) # for script argument input
 # model_target_layer = [*model_wrapper.model.layer1, *model_wrapper.model.layer2, *model_wrapper.model.layer3, *model_wrapper.model.layer4]
@@ -191,10 +208,52 @@ if args.exp_map_func == 'hard_inverse_threshold_explanation_map':
     evaluate_inverse_threshold = True
 args.exp_map_func = eval(args.exp_map_func)
 
-ad_logger = Average_Drop_logger(np.zeros((1,1)))
-ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
-iou_logger = IOU_logger(0)
-ac_logger = Average_confidence_logger()
+if args.ensemble_N >= 1 and args.eval_model_uncertainty:
+    iou_loggers = [IOU_logger(0) for _ in range(args.ensemble_N)]
+else:
+    ad_logger = Average_Drop_logger(np.zeros((1,1)))
+    ic_logger = Increase_Confidence_logger(np.zeros((1,1)))
+    iou_logger = IOU_logger(0)
+    ac_logger = Average_confidence_logger()
+
+def evaluate_model_uncertainty(x, cam, args, annotations):
+    centerCrop = transforms.CenterCrop(230)
+
+    batch_cam_masks, per_member_logits = [], []
+    for _ in range(args.ensemble_N):
+        #batch-wise cam of the input size and scaled
+        cam_targets = None
+        cams, logit_scores = cam.forward(input_tensor=x, targets=cam_targets, retain_model_output=True)
+        
+        batch_cam_masks.append(threshold(cams))
+        per_member_logits.append(logit_scores)
+    
+    # aggregate all annotation for each image into one single mask
+    batch_aggregated_masks = []
+    for per_img_annotation in annotations:
+        loaded_npy_masks = [centerCrop(torch.tensor(np.load(a) // 255, device=Constants.DEVICE, dtype=torch.long)) 
+                            for a in per_img_annotation] # convert to tensor and center crop
+        aggregateds_mask = torch.sum(torch.stack(loaded_npy_masks, dim=0), dim=0)
+        aggregateds_mask = aggregateds_mask.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
+        batch_aggregated_masks.append(aggregateds_mask)
+    batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
+
+    # only take into account the correctly predicted images for each member of the ensemble
+    batch_filtered_aggregated_masks = []
+    for i, logit_scores in enumerate(per_member_logits):
+        correct_predict_index = (torch.argmax(logit_scores, dim=1) == 1).cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else (torch.argmax(logit_scores, dim=1) == 1).detach().numpy()
+        batch_filtered_aggregated_masks.append(batch_aggregated_masks[correct_predict_index])
+        batch_cam_masks[i] = batch_cam_masks[i][correct_predict_index] # replace the one that are only correctly classified
+
+    # find the std and average iou
+    for i, (batch_cam_mask, batch_aggregated_masks, iou_logger) in enumerate(zip(batch_cam_masks, batch_filtered_aggregated_masks, iou_loggers)):
+        # Intersection over Union
+        overlap = batch_cam_mask * batch_aggregated_masks
+        union = batch_cam_mask + batch_aggregated_masks
+        iou_logger.update(overlap.sum(), union.sum())
+        print('member {}/{}; current overlap: {}; current union: {}; current IOU: {}'.format(i+1, args.ensemble_N, iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
+
+    return
 
 def evaluate_segmentation_results(x, cams, args, annotations):
     """_summary_
@@ -323,19 +382,28 @@ for i, (x, y) in enumerate(dataloader):
     # NOTE: make sure i able index to the correct index
     print('--------- Forward Passing {}'.format(args.cam))
     # generate batch-wise cam
-    cam_targets = None
-    grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets) #(batch, width, height)
-
-    if args.eval_segmentation:
+    # cam_targets = None
+    # grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets) #(batch, width, height)
+    
+    batch_annotations = [] # list of list of annotation
+    if args.eval_model_uncertainty or args.eval_segmentation:
         img_names = [image_order_book[img_index + k][0].split('/')[-1] for k in range(x.shape[0])]
-        batch_annotations = [] # list of list of annotation
         for name in img_names:
             per_img_annotations = list(filter(lambda path: name[:-4] in path, annotation_file_list))
             per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]
             batch_annotations.append(per_img_annotations)
-
+    
+    if args.eval_model_uncertainty:
+        # cam_targets = None
+        cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)
+        cam.model.train() # NOTE: VERY IMPORTANT STEP THE DROPOUT
+        evaluate_model_uncertainty(x, cam, args, batch_annotations)
+        img_index += x.shape[0]
+    elif args.eval_segmentation:
+        cam_targets = None
+        grayscale_cam = generate_cam_overlay(x, args, cam, cam_targets) #(batch, width, height)
+        
         evaluate_segmentation_results(x, grayscale_cam, args, batch_annotations)
-
         img_index += x.shape[0]
     elif args.run_mode == 'metrics':
         print('Forward Passing the original images')
@@ -412,11 +480,16 @@ for i, (x, y) in enumerate(dataloader):
         #     # update the sequential index for next iterations
         #     img_index += 1
 
-if args.eval_segmentation:
-    print('{}, IoU: {}'.format(args.layers, iou_logger.get_avg()))
-elif evaluate_inverse_threshold:
-    print('{};  Average Confidence: {}'.format(args.layers, ac_logger.get_avg()))
-elif args.run_mode == 'metrics':
-    print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
-else:
-    print('Done generating saliency map')
+# if args.eval_segmentation:
+#     print('{}, IoU: {}'.format(args.layers, iou_logger.get_avg()))
+# elif evaluate_inverse_threshold:
+#     print('{};  Average Confidence: {}'.format(args.layers, ac_logger.get_avg()))
+# elif args.run_mode == 'metrics':
+#     print('{};  Average Drop: {}; Average IC: {}'.format(args.layers, ad_logger.get_avg(), ic_logger.get_avg()))
+# else:
+#     print('Done generating saliency map')
+
+if args.eval_model_uncertainty:
+    avg_iou = np.array([iou_logger.get_avg() for iou_logger in iou_loggers])
+    print('{}, Avg IoU: {}, Std: {}'.format(args.target_layer, np.average(avg_iou), np.std(avg_iou)))
+    print('number of true predictions: {}'.format(TRUE_PREDICTION))

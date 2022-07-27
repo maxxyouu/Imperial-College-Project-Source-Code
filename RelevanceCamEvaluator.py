@@ -85,6 +85,7 @@ if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
 if args.eval_model_uncertainty is None:
     args.eval_model_uncertainty = False
 elif args.eval_model_uncertainty and args.model_weights == '' :
+    args.eval_segmentation = False
     args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_headWidth1_withLayerDropout_pretrain.pt')
 print('Evaluate Model Uncertainty: {}'.format(args.eval_model_uncertainty))
 if args.model_weights == '': # default model weight destination
@@ -306,7 +307,7 @@ def evaluate_model_uncertainty(x, annotations, args):
         # Intersection over Union
         overlap = batch_cam_mask * batch_aggregated_masks
         union = batch_cam_mask + batch_aggregated_masks
-        iou_loggers[i].update(overlap.sum(), union.sum())
+        iou_logger.update(overlap.sum(), union.sum())
         print('member {}/{}; current overlap: {}; current overlap: {}; current union: {}'.format(i+1, args.ensemble_N, iou_logger.overlap, iou_logger.union, iou_logger.current_iou))
 
 

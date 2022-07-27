@@ -199,7 +199,7 @@ data = datasets.ImageFolder(data_dir, transform=transforms.Compose(
 ))
 # for each image, it has a folder that store all the cam heatmaps
 sequentialSampler = SequentialSampler(data)
-dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler) # TODO: check image 18
+dataloader = DataLoader(data, batch_size=args.batchSize, sampler=sequentialSampler, drop_last=True) # TODO: check image 18
 
 image_order_book, img_index = data.imgs, 0
 cam = switch_cam(args.cam, model_wrapper.model, model_target_layer)

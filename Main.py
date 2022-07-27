@@ -76,7 +76,7 @@ my_parser.add_argument('--dropoutRate',
 # Execute the parse_args() method
 args = my_parser.parse_args()
 args.pickel_initial += '_headWidth{}'.format(args.headWidth)
-args.pickel_initial += '_withLayerDropout_rate{}'.format(args.dropoutRate) if args.layerDropout else ''
+args.pickel_initial += '_withLayerDropout_rate' if args.layerDropout else ''
 if args.pretrain is None:
     args.pretrain = True
 

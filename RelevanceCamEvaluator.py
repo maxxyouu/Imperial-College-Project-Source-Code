@@ -58,6 +58,9 @@ my_parser.add_argument('--alpha',
 my_parser.add_argument('--eval_segmentation',
                         type=bool, action=argparse.BooleanOptionalAction,
                         help='true indicate evaluate the segmentation performance of the cam method')
+my_parser.add_argument('--eval_model_uncertainty',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='evaluate model uncertainty')
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
                         help='path for the imge annotation')    
@@ -88,6 +91,9 @@ if args.plusplusMode is None:
     args.plusplusMode = False # for local debug only
 print('Plus Plus Mode: {}'.format(args.plusplusMode))
 print('Head Width: {}'.format(args.headWidth))
+if args.eval_model_uncertainty is None:
+    args.eval_model_uncertainty = False
+print('Evaluate Model Uncertainty: {}'.format(args.eval_model_uncertainty))
 
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
@@ -232,6 +238,10 @@ else:
     ac_logger = Average_confidence_logger()
 
 
+def evaluate_model_uncertainty(x, args):
+    pass
+
+
 def evaluate_model_metrics(x, args):
     Yci = None
     if args.evaluate_all_layers:
@@ -315,16 +325,12 @@ def evaluate_segmentation_metrics(x, annotations, args):
     else: 
         cam = resize_cam(r_cam[0]) # [batch_size, width, heigh]
     batch_cam_mask = threshold(cam).squeeze(1)
-    # plt.imshow(cam[0,:].squeeze(0), cmap='seismic')
-    # plt.imshow(np.transpose(denorm(x[0,:]), (1,2,0)), alpha=.5)
     #NOTE: The follow is correct
     batch_aggregated_masks = []
     for per_img_annotation in annotations:
         loaded_npy_masks = [centerCrop(torch.tensor(np.load(a) // 255, device=Constants.DEVICE, dtype=torch.long)) for a in per_img_annotation] # convert to tensor and center crop
         aggregateds_mask = torch.sum(torch.stack(loaded_npy_masks, dim=0), dim=0)
         aggregateds_mask = aggregateds_mask.cpu().detach().numpy() if Constants.WORK_ENV == 'COLAB' else aggregateds_mask.detach().numpy()
-        # plt.imshow(aggregateds_mask)
-        # plt.imshow(batch_cam_mask[0,:])
         batch_aggregated_masks.append(aggregateds_mask)
 
     batch_aggregated_masks = np.array(np.stack(batch_aggregated_masks, axis=0), dtype=bool)
@@ -355,6 +361,8 @@ for i, (x, y) in enumerate(dataloader):
             per_img_annotations = [os.path.join(Constants.ANNOTATION_PATH, a) for a in per_img_annotations]
             batch_annotations.append(per_img_annotations)
         evaluate_segmentation_metrics(x, batch_annotations, args)
+    elif args.eval_model_uncertainty:
+        evaluate_model_uncertainty(x, args)
     else:
         evaluate_model_metrics(x, args)
     

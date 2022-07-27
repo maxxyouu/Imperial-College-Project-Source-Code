@@ -25,6 +25,7 @@ from vgg import vgg11_bn as lrp_vgg11_bn
 from resnet import resnet152 as lrp_resnet152
 from ResNetLocal import resnext50_32x4d
 
+torch.manual_seed(100)
 default_model_name = 'skresnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model_name',
@@ -78,14 +79,14 @@ args = my_parser.parse_args()
 print('Model Name: {}'.format(args.model_name))
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
     args.eval_model_uncertainty = True
-    #make sure in the correct data source location
-    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
-    assert(args.annotation_path == Constants.ANNOTATION_PATH)
-    annotation_file_list = os.listdir(args.annotation_path)
 if args.eval_model_uncertainty is None:
     args.eval_model_uncertainty = False
 elif args.eval_model_uncertainty and args.model_weights == '' :
     args.eval_segmentation = False
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+    annotation_file_list = os.listdir(args.annotation_path)
     args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_headWidth1_withLayerDropout_pretrain.pt')
 print('Evaluate Model Uncertainty: {}'.format(args.eval_model_uncertainty))
 if args.model_weights == '': # default model weight destination
@@ -216,7 +217,7 @@ data = datasets.ImageFolder(data_dir, transform=data_transformers)
 
 # for each image, it has a folder that store all the cam heatmaps
 sequentialSampler = SequentialSampler(data)
-dataloader = DataLoader(data, batch_size=args.batch_size, sampler=sequentialSampler) # TODO: check image 18
+dataloader = DataLoader(data, batch_size=args.batch_size, sampler=sequentialSampler, drop_last=True) # TODO: check image 18
 image_order_book, img_index = data.imgs, 0
 layers = ['layer1', 'layer2', 'layer3', 'layer4']
 layer_idx_mapper = {'layer1': 0, 'layer2': 1, 'layer3': 2, 'layer4': 3}
@@ -245,7 +246,7 @@ args.exp_map_func = eval(args.exp_map_func)
 if args.evaluate_all_layers:
     ad_logger = Average_Drop_logger(np.zeros((1, 4)))
     ic_logger = Increase_Confidence_logger(np.zeros((1, 4)))
-elif args.ensemble_N > 1:
+elif args.ensemble_N >= 1:
     iou_loggers = [IOU_logger(0) for _ in range(args.ensemble_N)]
 else:
     ad_logger = Average_Drop_logger(np.zeros((1,1)))
@@ -447,11 +448,11 @@ else:
         bh.remove()
 
 # print the metrics results
-if not args.eval_segmentation and not evaluate_inverse_threshold:
-    print('{}; Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
-elif evaluate_inverse_threshold:
-    print('{};  Average Confidence: {}'.format(args.target_layer, ac_logger.get_avg()))
-elif args.eval_model_uncertainty:
+# if not args.eval_segmentation and not evaluate_inverse_threshold:
+#     print('{}; Average Drop: {}; Average IC: {}'.format(args.target_layer, ad_logger.get_avg(), ic_logger.get_avg()))
+# elif evaluate_inverse_threshold:
+#     print('{};  Average Confidence: {}'.format(args.target_layer, ac_logger.get_avg()))
+if args.eval_model_uncertainty:
     avg_iou = np.array([iou_logger.get_avg() for iou_logger in iou_loggers])
     print('{}, Avg IoU: {}, Std: {}'.format(args.target_layer, np.average(avg_iou), np.std(avg_iou)))
     print('number of true predictions: {}'.format(TRUE_PREDICTION))

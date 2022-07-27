@@ -113,6 +113,13 @@ my_parser.add_argument('--headWidth',
 my_parser.add_argument('--annotation_path',
                         type=str, default=Constants.ANNOTATION_PATH,
                         help='path for the imge annotation')
+my_parser.add_argument('--eval_model_uncertainty',
+                        type=bool, action=argparse.BooleanOptionalAction,
+                        help='evaluate model uncertainty')
+my_parser.add_argument('--ensemble_N',
+                        type=int, default=2,
+                        help='number of times to evaluate using the layer dropout, only be used with eval_model_uncertainty holds true')
+
 # 'scorecam', 'ablationcam', 'xgradcam', 'eigencam',
 args = my_parser.parse_args()
 
@@ -126,6 +133,20 @@ print('Explanation map style: {}'.format(args.exp_map_func))
 print('CAM: {}'.format(args.cam))
 print('Data Location {}'.format(args.data_location))
 print('Head Width: {}'.format(args.headWidth))
+if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
+    args.eval_model_uncertainty = True
+if args.eval_model_uncertainty is None:
+    args.eval_model_uncertainty = False
+elif args.eval_model_uncertainty and args.model_weights == '' :
+    args.eval_segmentation = False
+    #make sure in the correct data source location
+    assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
+    assert(args.annotation_path == Constants.ANNOTATION_PATH)
+    annotation_file_list = os.listdir(args.annotation_path)
+    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_headWidth1_withLayerDropout_pretrain.pt')
+print('Evaluate Model Uncertainty: {}'.format(args.eval_model_uncertainty))
+if args.model_weights == '': # default model weight destination
+    args.model_weights = os.path.join(Constants.SAVED_MODEL_PATH, args.model_name +'_pretrain.pt')
 data_dir = args.data_location
 
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
@@ -138,7 +159,6 @@ else:
     assert(args.annotation_path == Constants.ANNOTATION_PATH)
     annotation_file_list = os.listdir(args.annotation_path)
 print('Evaluate Segmentation {}'.format(args.eval_segmentation))
-
 
 # model_wrapper = get_trained_model(args.model)
 model_wrapper = switch_model(args.model, False, headWidth=args.headWidth)

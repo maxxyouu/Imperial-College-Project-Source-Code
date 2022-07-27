@@ -79,8 +79,8 @@ class BaseCAM:
         if type(outputs) == tuple:
             outputs = outputs[1]
         if targets is None:
-            # target_categories = np.argmax(outputs.cpu().data.numpy() , axis=-1)
-            target_categories = np.argmax(outputs.data.numpy() , axis=-1)
+            target_categories = np.argmax(outputs.cpu().data.numpy() , axis=-1)
+            # target_categories = np.argmax(outputs.data.numpy() , axis=-1)
 
             # each input has a corresponding category in a list
             targets = [ClassifierOutputTarget(category) for category in target_categories]

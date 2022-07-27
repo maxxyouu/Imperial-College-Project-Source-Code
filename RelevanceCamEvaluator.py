@@ -24,8 +24,9 @@ from PIL import Image
 from resnet import resnet50 as lrp_resnet50
 from vgg import vgg11_bn as lrp_vgg11_bn
 from resnet import resnet152 as lrp_resnet152
+from ResNetLocal import resnext50_32x4d
 
-default_model_name = 'skresnext50_32x4d'
+default_model_name = 'resnext50_32x4d'
 my_parser = argparse.ArgumentParser(description='')
 my_parser.add_argument('--model_name',
                         type=str, default=default_model_name,
@@ -107,6 +108,8 @@ elif args.model_name == 'vgg11_bn':
     model = lrp_vgg11_bn(pretrained=False)
 elif args.model_name == 'resnet152':
     model = lrp_resnet152(pretrained=False)
+elif args.model_name == 'resnext50_32x4d':
+    model = resnext50_32x4d(pretrained=False)
 else:
     model = skresnext50_32x4d(pretrained=False)
 model.num_classes = 2 #NOTE required to do CLRP and SGLRP

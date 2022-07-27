@@ -493,4 +493,3 @@ for i, (x, y) in enumerate(dataloader):
 if args.eval_model_uncertainty:
     avg_iou = np.array([iou_logger.get_avg() for iou_logger in iou_loggers])
     print('{}, Avg IoU: {}, Std: {}'.format(args.target_layer, np.average(avg_iou), np.std(avg_iou)))
-    print('number of true predictions: {}'.format(TRUE_PREDICTION))

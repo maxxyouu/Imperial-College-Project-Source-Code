@@ -77,7 +77,7 @@ args = my_parser.parse_args()
 # Sanity checks for the script arguments
 print('Model Name: {}'.format(args.model_name))
 if Constants.WORK_ENV == 'LOCAL': # NOTE: FOR DEBUG PURPOSE
-    args.eval_model_uncertainty = True
+    args.eval_model_uncertainty = False
     #make sure in the correct data source location
     assert(args.data_location == Constants.ANNOTATED_IMG_PATH)
     assert(args.annotation_path == Constants.ANNOTATION_PATH)
@@ -430,8 +430,6 @@ for i, (x, y) in enumerate(dataloader):
 
     if args.eval_segmentation:
         evaluate_segmentation_metrics(x, batch_annotations, args)
-    elif args.eval_model_uncertainty:
-        evaluate_model_uncertainty(x, batch_annotations, args)
     else:
         evaluate_model_metrics(x, args)
     
